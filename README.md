@@ -1,3 +1,21 @@
+##
+-Comandos a usar para levantar el backend
+-Tener Composer Instalado
+*tener pgadmin4 instalado*
+-crar un database con el nombre de ----->Kawi-Tis
+-usar estos comandos para levantarlo
+php artisan config:clear
+php artisan migrate:status
+php artisan migrate
+php artisan serve
+si hay un error con el comando "php artisan server" usar el comando php -S 127.0.0.1:9200 -t public
+eso es depende a la ip que esta configurado en tu maquina 
+cualquier duda al 77417175 o al 65315925
+
+estamos aca para servirlos, muchas gracias por confiar en nosotros :D
+##
+
+
 ## Backend - Plataforma de Servicios
 
 Backend desarrollado con **PHP 8.3+** usando el framework **Laravel 13**.  
