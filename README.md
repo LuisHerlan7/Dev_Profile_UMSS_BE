@@ -18,7 +18,7 @@ estamos aca para servirlos, muchas gracias por confiar en nosotros :D
 
 ## Backend - Plataforma de Servicios
 
-Backend desarrollado con **PHP 8.3+** usando el framework **Laravel 13**.  
+Backend desarrollado con **PHP 8.2** usando el framework **Laravel 11**.  
 Este proyecto expone una API para una plataforma tipo **LinkedIn + GitHub**, con enfoque en perfiles profesionales, proyectos y portafolios.
 
 ---
@@ -37,10 +37,10 @@ El proyecto parte de la estructura estándar de Laravel y puede evolucionar haci
 
 ## Requisitos
 
-- **PHP** >= 8.3
+- **PHP** >= 8.2
 - **Composer** (gestor de dependencias PHP)
 - **Extensiones PHP** recomendadas por Laravel (mbstring, openssl, pdo, etc.)
-- **Base de datos** (MySQL/MariaDB, PostgreSQL, SQLite u otra soportada por Laravel)
+- **PostgreSQL** 15.10 (recomendado para este proyecto)
 
 ---
 
