@@ -36,11 +36,15 @@ Route::middleware('auth:sanctum')->prefix('developer')->group(function (): void 
     Route::post('/settings/avatar', [\App\Http\Controllers\DeveloperSettingsController::class, 'updateAvatar']);
     Route::post('/settings/profile', [\App\Http\Controllers\DeveloperSettingsController::class, 'updateProfile']);
     
-    // Descarga de Archivos (Públicas o semi-públicas según lógica de controller)
+    // Descarga de Archivos Protegidos (Temporalmente deshabilitado para facilitar visualización rápida)
     Route::prefix('files')->group(function (): void {
-        Route::get('/experiencia/{id}', [\App\Http\Controllers\FileDownloadController::class, 'downloadExperiencia']);
-        Route::get('/formacion/{id}', [\App\Http\Controllers\FileDownloadController::class, 'downloadFormacion']);
-        Route::get('/proyecto/{id}', [\App\Http\Controllers\FileDownloadController::class, 'downloadProyecto']);
-        Route::get('/avatar/{id}', [\App\Http\Controllers\FileDownloadController::class, 'getAvatar']);
     });
+});
+
+// Rutas Públicas de Archivos (Para carga en etiquetas <img> o window.open sin headers)
+Route::prefix('developer/files')->group(function (): void {
+    Route::get('/avatar/{id}', [\App\Http\Controllers\FileDownloadController::class, 'getAvatar']);
+    Route::get('/experiencia/{id}', [\App\Http\Controllers\FileDownloadController::class, 'downloadExperiencia']);
+    Route::get('/formacion/{id}', [\App\Http\Controllers\FileDownloadController::class, 'downloadFormacion']);
+    Route::get('/proyecto/{id}', [\App\Http\Controllers\FileDownloadController::class, 'downloadProyecto']);
 });

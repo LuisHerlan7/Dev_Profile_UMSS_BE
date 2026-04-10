@@ -35,8 +35,8 @@ class FileDownloadController extends Controller
     {
         $fileRow = DB::selectOne('SELECT fotografia as archivo_evidencia FROM "Usuario" WHERE id_usuario = ?', [$id]);
         if ($fileRow && $fileRow->archivo_evidencia) {
-            $fileRow->nombre_archivo_evidencia = "avatar_$id.jpg";
-            $fileRow->mime_tipo_evidencia = "image/jpeg";
+            $fileRow->nombre_archivo_evidencia = "avatar_$id";
+            // El tipo MIME se detectará automáticamente en serveFile
         }
         return $this->serveFile($fileRow, 'avatar_' . $id);
     }
@@ -48,17 +48,33 @@ class FileDownloadController extends Controller
         }
 
         $content = $fileRow->archivo_evidencia;
+        
+        // Manejar recursos de Postgres
         if (is_resource($content)) {
             $content = stream_get_contents($content);
         }
 
-        // Si PostgreSQL lo devuelve en hexadecimal estilizamos \x...
-        if (strpos($content, '\x') === 0) {
-            $content = hex2bin(substr($content, 2));
+        // Manejar formato hexadecimal de Postgres (\x...)
+        if (is_string($content) && strpos($content, '\x') === 0) {
+            $hex = substr($content, 2);
+            if (strlen($hex) % 2 === 0) {
+                $content = hex2bin($hex);
+            }
+        }
+
+        // Detectar MIME tipo si no está presente o forzar detección para mayor seguridad
+        $mime = $fileRow->mime_tipo_evidencia ?? null;
+        if (!$mime && is_string($content)) {
+            try {
+                $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                $mime = $finfo->buffer($content);
+            } catch (\Throwable $e) {
+                $mime = 'application/octet-stream';
+            }
         }
 
         $headers = [
-            'Content-Type' => $fileRow->mime_tipo_evidencia ?? 'application/octet-stream',
+            'Content-Type' => $mime ?? 'application/octet-stream',
             'Content-Disposition' => 'inline; filename="' . ($fileRow->nombre_archivo_evidencia ?? $defaultName) . '"',
             'Cache-Control' => 'max-age=86400, public',
         ];

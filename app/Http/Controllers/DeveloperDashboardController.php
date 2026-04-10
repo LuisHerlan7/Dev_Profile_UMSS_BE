@@ -114,7 +114,7 @@ class DeveloperDashboardController extends Controller
             return $p;
         }, $proyectos);
 
-        if ($usuario && $usuario->fotografia) {
+        if ($usuario && !empty($usuario->fotografia)) {
             $ts = $usuario->fecha_actualizacion ? strtotime($usuario->fecha_actualizacion) : time();
             $usuario->fotografiaUrl = '/api/developer/files/avatar/' . $usuario->id_usuario . '?t=' . $ts;
             $usuario->fotografia = null; // Don't send huge base64 bytea in generic dash object
