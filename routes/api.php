@@ -14,6 +14,7 @@ Route::prefix('auth')->group(function (): void {
         ->whereIn('provider', ['github', 'linkedin']);
 
     Route::middleware('auth:sanctum')->group(function (): void {
+        Route::get('/dashboard', [AuthController::class, 'dashboard']);
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/logout', [AuthController::class, 'logout']);
     });
