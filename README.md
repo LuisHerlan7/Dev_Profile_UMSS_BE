@@ -1,19 +1,76 @@
-##
--Comandos a usar para levantar el backend
--Tener Composer Instalado
-*tener pgadmin4 instalado*
--crar un database con el nombre de ----->Kawi-Tis
--usar estos comandos para levantarlo
-php artisan config:clear
-php artisan migrate:status
-php artisan migrate
-php artisan serve
-si hay un error con el comando "php artisan server" usar el comando php -S 127.0.0.1:9200 -t public
-eso es depende a la ip que esta configurado en tu maquina 
-cualquier duda al 77417175 o al 65315925
+## Inicio rápido (equipo UMSS)
 
-estamos aca para servirlos, muchas gracias por confiar en nosotros :D
-##
+### Stack obligatorio
+- **PHP 8.2**
+- **Laravel 11**
+- **PostgreSQL 15.10**
+
+### Requisitos
+- Composer instalado.
+- PostgreSQL en ejecución.
+
+### Configuración local (paso a paso)
+1. Instalar dependencias:
+```bash
+composer install
+```
+
+2. Crear `.env` local:
+```bash
+cp .env.example .env
+```
+En Windows (PowerShell):
+```powershell
+Copy-Item .env.example .env
+```
+
+3. Generar la key:
+```bash
+php artisan key:generate
+```
+
+4. Ajustar variables clave en `.env`:
+```
+APP_URL=http://127.0.0.1:9200
+SERVER_HOST=127.0.0.1
+SERVER_PORT=9200
+
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=dev_profile_umss
+DB_USERNAME=postgres
+DB_PASSWORD=aquivatucontraseñasupercomplicada
+
+FRONTEND_URL=http://127.0.0.1:4200
+SANCTUM_STATEFUL_DOMAINS=127.0.0.1:4200,localhost:4200,127.0.0.1:9200,localhost:9200
+```
+
+5. Migraciones y seed:
+```bash
+php artisan migrate
+php artisan db:seed
+```
+
+6. Storage link (para evidencias):
+```bash
+php artisan storage:link
+```
+
+7. Levantar servidor:
+```bash
+php artisan serve
+```
+Queda en: `http://127.0.0.1:9200`
+
+### Credenciales demo
+Admin (seed):
+- Email: `parche@gmail.com`
+- Password: `admin123`
+
+### Troubleshooting rápido
+- Si el puerto 9200 está ocupado, cambia `SERVER_PORT` en `.env` o libera el proceso.
+- Si falla el seed, ejecuta nuevamente `php artisan db:seed` luego de actualizar el repo.
 
 
 ## Backend - Plataforma de Servicios
