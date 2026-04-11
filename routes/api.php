@@ -35,6 +35,11 @@ Route::middleware('auth:sanctum')->prefix('developer')->group(function (): void 
     // Ajustes y Perfil
     Route::post('/settings/avatar', [\App\Http\Controllers\DeveloperSettingsController::class, 'updateAvatar']);
     Route::post('/settings/profile', [\App\Http\Controllers\DeveloperSettingsController::class, 'updateProfile']);
+    Route::post('/settings/social-links', [\App\Http\Controllers\DeveloperSettingsController::class, 'updateSocialLinks']);
+    Route::post('/settings/email', [\App\Http\Controllers\DeveloperSettingsController::class, 'updateEmail']);
+    Route::post('/settings/password', [\App\Http\Controllers\DeveloperSettingsController::class, 'updatePassword']);
+    Route::post('/settings/verify-password', [\App\Http\Controllers\DeveloperSettingsController::class, 'verifyPassword']);
+    Route::post('/settings/highlights', [\App\Http\Controllers\DeveloperSettingsController::class, 'syncHighlights']);
     
     // Proyectos
     Route::post('/proyecto', [\App\Http\Controllers\ProyectoController::class, 'store']);
