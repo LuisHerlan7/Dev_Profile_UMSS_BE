@@ -2,7 +2,7 @@
 -Comandos a usar para levantar el backend
 -Tener Composer Instalado
 *tener pgadmin4 instalado*
--crar un database con el nombre de ----->Kawi-Tis
+-crar un database con el nombre de ----->GeneradorCvDB
 -usar estos comandos para levantarlo
 php artisan config:clear
 php artisan migrate:status

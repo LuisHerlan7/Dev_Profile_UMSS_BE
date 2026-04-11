@@ -36,6 +36,10 @@ Route::middleware('auth:sanctum')->prefix('developer')->group(function (): void 
     Route::post('/settings/avatar', [\App\Http\Controllers\DeveloperSettingsController::class, 'updateAvatar']);
     Route::post('/settings/profile', [\App\Http\Controllers\DeveloperSettingsController::class, 'updateProfile']);
     
+    // Proyectos
+    Route::post('/proyecto', [\App\Http\Controllers\ProyectoController::class, 'store']);
+    Route::delete('/proyecto/{id}', [\App\Http\Controllers\ProyectoController::class, 'destroy']);
+    
     // Descarga de Archivos Protegidos (Temporalmente deshabilitado para facilitar visualización rápida)
     Route::prefix('files')->group(function (): void {
     });
