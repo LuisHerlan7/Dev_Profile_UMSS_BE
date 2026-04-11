@@ -50,6 +50,10 @@ Route::middleware('auth:sanctum')->prefix('developer')->group(function (): void 
     });
 });
 
+// Rutas Públicas de Portafolios y Perfiles
+Route::get('/portafolios', [\App\Http\Controllers\PublicProfileController::class, 'index']);
+Route::get('/portafolios/{id}', [\App\Http\Controllers\PublicProfileController::class, 'show']);
+
 // Rutas Públicas de Archivos (Para carga en etiquetas <img> o window.open sin headers)
 Route::prefix('developer/files')->group(function (): void {
     Route::get('/avatar/{id}', [\App\Http\Controllers\FileDownloadController::class, 'getAvatar']);
