@@ -1,7 +1,11 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\EvidenceModerationController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\SocialAuthController;
+use App\Http\Controllers\Dashboard\DeveloperDashboardController as DevBranchDashboardController;
+use App\Http\Controllers\Developer\ProjectController;
 use App\Http\Controllers\DeveloperDashboardController;
 use App\Http\Controllers\DeveloperSettingsController;
 use App\Http\Controllers\ExperienciaLaboralController;
@@ -13,7 +17,7 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Auth (Sanctum + OAuth)
+| Auth (Sanctum + OAuth) — backend-dev
 |--------------------------------------------------------------------------
 */
 Route::prefix('auth')->group(function (): void {
@@ -33,23 +37,45 @@ Route::prefix('auth')->group(function (): void {
 
 /*
 |--------------------------------------------------------------------------
-| Developer (autenticado)
+| Dashboard / proyectos (estilo rama dev) — rutas bajo /api/...
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth:sanctum')->group(function (): void {
+    Route::get('/dashboard/developer', [DevBranchDashboardController::class, 'show']);
+    Route::post('/projects', [ProjectController::class, 'store']);
+    Route::post('/projects/{projectId}/evidences', [ProjectController::class, 'uploadEvidence']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Admin — rama dev
+|--------------------------------------------------------------------------
+*/
+Route::prefix('admin')
+    ->middleware('auth:sanctum')
+    ->group(function (): void {
+        Route::get('/dashboard', [AdminDashboardController::class, 'summary']);
+        Route::post('/users', [AdminDashboardController::class, 'createAdmin']);
+        Route::get('/evidences', [EvidenceModerationController::class, 'index']);
+        Route::patch('/evidences/{evidenceId}', [EvidenceModerationController::class, 'update']);
+    });
+
+/*
+|--------------------------------------------------------------------------
+| Developer (perfil, CV, archivos) — backend-dev
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth:sanctum')->prefix('developer')->group(function (): void {
     Route::get('/dashboard', [DeveloperDashboardController::class, 'index']);
 
-    // Experiencia y formación
     Route::post('/experiencia', [ExperienciaLaboralController::class, 'store']);
     Route::delete('/experiencia/{id}', [ExperienciaLaboralController::class, 'destroy']);
 
     Route::post('/formacion', [FormacionAcademicaController::class, 'store']);
     Route::delete('/formacion/{id}', [FormacionAcademicaController::class, 'destroy']);
 
-    // Habilidades
     Route::post('/habilidades/sync', [HabilidadController::class, 'sync']);
 
-    // Ajustes y perfil
     Route::post('/settings/avatar', [DeveloperSettingsController::class, 'updateAvatar']);
     Route::post('/settings/profile', [DeveloperSettingsController::class, 'updateProfile']);
     Route::post('/settings/social-links', [DeveloperSettingsController::class, 'updateSocialLinks']);
@@ -58,11 +84,9 @@ Route::middleware('auth:sanctum')->prefix('developer')->group(function (): void 
     Route::post('/settings/verify-password', [DeveloperSettingsController::class, 'verifyPassword']);
     Route::post('/settings/highlights', [DeveloperSettingsController::class, 'syncHighlights']);
 
-    // Proyectos
     Route::post('/proyecto', [ProyectoController::class, 'store']);
     Route::delete('/proyecto/{id}', [ProyectoController::class, 'destroy']);
 
-    // Descargas protegidas (reservado; hoy vacío)
     Route::prefix('files')->group(function (): void {
         //
     });
@@ -70,8 +94,7 @@ Route::middleware('auth:sanctum')->prefix('developer')->group(function (): void 
 
 /*
 |--------------------------------------------------------------------------
-| Archivos públicos (<img>, window.open sin Bearer)
-| Prefijo developer/files (no developer-files): coincide con dashboard y FE.
+| Archivos públicos — backend-dev (coincide con URLs en dashboard / FE)
 |--------------------------------------------------------------------------
 */
 Route::prefix('developer/files')->group(function (): void {
