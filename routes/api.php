@@ -2,20 +2,8 @@
 
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\SocialAuthController;
-use App\Http\Controllers\DeveloperDashboardController;
-use App\Http\Controllers\DeveloperSettingsController;
-use App\Http\Controllers\ExperienciaLaboralController;
-use App\Http\Controllers\FileDownloadController;
-use App\Http\Controllers\FormacionAcademicaController;
-use App\Http\Controllers\HabilidadController;
-use App\Http\Controllers\ProyectoController;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| Auth (Sanctum + OAuth)
-|--------------------------------------------------------------------------
-*/
 Route::prefix('auth')->group(function (): void {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
@@ -31,52 +19,41 @@ Route::prefix('auth')->group(function (): void {
     });
 });
 
-/*
-|--------------------------------------------------------------------------
-| Developer (autenticado)
-|--------------------------------------------------------------------------
-*/
 Route::middleware('auth:sanctum')->prefix('developer')->group(function (): void {
-    Route::get('/dashboard', [DeveloperDashboardController::class, 'index']);
-
-    // Experiencia y formación
-    Route::post('/experiencia', [ExperienciaLaboralController::class, 'store']);
-    Route::delete('/experiencia/{id}', [ExperienciaLaboralController::class, 'destroy']);
-
-    Route::post('/formacion', [FormacionAcademicaController::class, 'store']);
-    Route::delete('/formacion/{id}', [FormacionAcademicaController::class, 'destroy']);
-
+    Route::get('/dashboard', [\App\Http\Controllers\DeveloperDashboardController::class, 'index']);
+    
+    // Experiencia y Formación
+    Route::post('/experiencia', [\App\Http\Controllers\ExperienciaLaboralController::class, 'store']);
+    Route::delete('/experiencia/{id}', [\App\Http\Controllers\ExperienciaLaboralController::class, 'destroy']);
+    
+    Route::post('/formacion', [\App\Http\Controllers\FormacionAcademicaController::class, 'store']);
+    Route::delete('/formacion/{id}', [\App\Http\Controllers\FormacionAcademicaController::class, 'destroy']);
+    
     // Habilidades
-    Route::post('/habilidades/sync', [HabilidadController::class, 'sync']);
-
-    // Ajustes y perfil
-    Route::post('/settings/avatar', [DeveloperSettingsController::class, 'updateAvatar']);
-    Route::post('/settings/profile', [DeveloperSettingsController::class, 'updateProfile']);
-    Route::post('/settings/social-links', [DeveloperSettingsController::class, 'updateSocialLinks']);
-    Route::post('/settings/email', [DeveloperSettingsController::class, 'updateEmail']);
-    Route::post('/settings/password', [DeveloperSettingsController::class, 'updatePassword']);
-    Route::post('/settings/verify-password', [DeveloperSettingsController::class, 'verifyPassword']);
-    Route::post('/settings/highlights', [DeveloperSettingsController::class, 'syncHighlights']);
-
+    Route::post('/habilidades/sync', [\App\Http\Controllers\HabilidadController::class, 'sync']);
+    
+    // Ajustes y Perfil
+    Route::post('/settings/avatar', [\App\Http\Controllers\DeveloperSettingsController::class, 'updateAvatar']);
+    Route::post('/settings/profile', [\App\Http\Controllers\DeveloperSettingsController::class, 'updateProfile']);
+    Route::post('/settings/social-links', [\App\Http\Controllers\DeveloperSettingsController::class, 'updateSocialLinks']);
+    Route::post('/settings/email', [\App\Http\Controllers\DeveloperSettingsController::class, 'updateEmail']);
+    Route::post('/settings/password', [\App\Http\Controllers\DeveloperSettingsController::class, 'updatePassword']);
+    Route::post('/settings/verify-password', [\App\Http\Controllers\DeveloperSettingsController::class, 'verifyPassword']);
+    Route::post('/settings/highlights', [\App\Http\Controllers\DeveloperSettingsController::class, 'syncHighlights']);
+    
     // Proyectos
-    Route::post('/proyecto', [ProyectoController::class, 'store']);
-    Route::delete('/proyecto/{id}', [ProyectoController::class, 'destroy']);
-
-    // Descargas protegidas (reservado; hoy vacío)
+    Route::post('/proyecto', [\App\Http\Controllers\ProyectoController::class, 'store']);
+    Route::delete('/proyecto/{id}', [\App\Http\Controllers\ProyectoController::class, 'destroy']);
+    
+    // Descarga de Archivos Protegidos (Temporalmente deshabilitado para facilitar visualización rápida)
     Route::prefix('files')->group(function (): void {
-        //
     });
 });
 
-/*
-|--------------------------------------------------------------------------
-| Archivos públicos (<img>, window.open sin Bearer)
-| Prefijo developer/files (no developer-files): coincide con dashboard y FE.
-|--------------------------------------------------------------------------
-*/
+// Rutas Públicas de Archivos (Para carga en etiquetas <img> o window.open sin headers)
 Route::prefix('developer/files')->group(function (): void {
-    Route::get('/avatar/{id}', [FileDownloadController::class, 'getAvatar']);
-    Route::get('/experiencia/{id}', [FileDownloadController::class, 'downloadExperiencia']);
-    Route::get('/formacion/{id}', [FileDownloadController::class, 'downloadFormacion']);
-    Route::get('/proyecto/{id}', [FileDownloadController::class, 'downloadProyecto']);
+    Route::get('/avatar/{id}', [\App\Http\Controllers\FileDownloadController::class, 'getAvatar']);
+    Route::get('/experiencia/{id}', [\App\Http\Controllers\FileDownloadController::class, 'downloadExperiencia']);
+    Route::get('/formacion/{id}', [\App\Http\Controllers\FileDownloadController::class, 'downloadFormacion']);
+    Route::get('/proyecto/{id}', [\App\Http\Controllers\FileDownloadController::class, 'downloadProyecto']);
 });
