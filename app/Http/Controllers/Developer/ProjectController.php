@@ -61,7 +61,7 @@ class ProjectController extends Controller
                 'fecha_fin' => $payload['end_date'] ?? null,
                 'fecha_creacion' => now(),
                 'estado_revision' => 'en_revision',
-            ], 'id_proyecto');
+            ]);
 
             $this->syncTechnologies($projectId, $payload['technologies'] ?? []);
 
@@ -150,7 +150,7 @@ class ProjectController extends Controller
             'url_publica' => $url,
             'estado' => 'publicado',
             'fecha_creacion' => now(),
-        ], 'id_portafolio');
+        ]);
     }
 
     /**
@@ -175,7 +175,7 @@ class ProjectController extends Controller
                 'nombre_tecnologia' => $techName,
                 'categoria' => 'otro',
                 'descripcion' => 'Registrada por el desarrollador.',
-            ], 'id_tecnologia');
+            ]);
 
             DB::table('Tecnologia_Proyecto')->insert([
                 'id_proyecto' => $projectId,
@@ -217,7 +217,7 @@ class ProjectController extends Controller
                 'fecha_carga' => now(),
                 'visibilidad' => 'publico',
                 'estado_revision' => 'en_revision',
-            ], 'id_evidencia');
+            ]);
 
             $payload[] = [
                 'id' => $evidenceId,
