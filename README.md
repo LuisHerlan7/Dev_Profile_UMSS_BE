@@ -1,3 +1,19 @@
+## Comandos locales (Levantamiento)
+- Tener Composer Instalado
+- *tener pgadmin4 instalado*
+- crear un database con el nombre de -----> GeneradorCvDB
+- usar estos comandos para levantarlo:
+  ```bash
+  php artisan config:clear
+  php artisan migrate:status
+  php artisan migrate
+  php artisan serve
+  ```
+Si hay un error con el comando `php artisan serve` usar el comando `php -S 127.0.0.1:9200 -t public`.
+Cualquier duda al 77417175 o al 65315925.
+
+---
+
 ## Inicio rápido (equipo UMSS)
 
 ### Stack obligatorio

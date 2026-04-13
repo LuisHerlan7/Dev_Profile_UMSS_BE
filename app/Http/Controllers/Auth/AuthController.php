@@ -130,7 +130,7 @@ class AuthController extends Controller
 
         return [
             'type' => $isAdmin ? 'admin' : ($isDeveloper ? 'desarrollador' : 'visitante'),
-            'route' => $isAdmin ? '/admin' : ($isDeveloper ? '/desarrollador' : '/visitante'),
+            'route' => $isAdmin ? '/admin' : ($isDeveloper ? '/dashboard' : '/visitante'),
             'title' => $isAdmin
                 ? 'Panel del administrador'
                 : ($isDeveloper ? 'Panel del desarrollador' : 'Panel del visitante'),
