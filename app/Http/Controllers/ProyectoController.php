@@ -49,13 +49,17 @@ class ProyectoController extends Controller
             $data = $request->validate([
                 'nombre_proyecto' => 'required|string|max:150',
                 'descripcion_proyecto' => 'required|string',
+                'descripcion_tecnica' => 'nullable|string',
                 'rol_desarrollador' => 'nullable|string|max:100',
                 'fecha_inicio' => 'nullable|date',
                 'fecha_fin' => 'nullable|date',
                 'enlace_repositorio' => 'nullable|url|max:255',
                 'enlace_proyecto_activo' => 'nullable|url|max:255',
                 'estado_proyecto' => 'nullable|in:en_desarrollo,completado,pausado',
-                'archivo' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf,zip|max:51200',
+                'evidences' => 'nullable|array',
+                'evidences.*' => 'file|max:51200',
+                'evidence_folders' => 'nullable|array',
+                'technologies' => 'nullable|array',
             ]);
 
             $insertedProyecto = DB::selectOne(
@@ -63,6 +67,7 @@ class ProyectoController extends Controller
                     id_portafolio,
                     nombre_proyecto,
                     descripcion_proyecto,
+                    descripcion_tecnica,
                     rol_desarrollador,
                     fecha_inicio,
                     fecha_fin,
@@ -70,12 +75,13 @@ class ProyectoController extends Controller
                     enlace_proyecto_activo,
                     estado_proyecto,
                     visibilidad
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 RETURNING id_proyecto',
                 [
                     $idPortafolio,
                     $data['nombre_proyecto'],
                     $data['descripcion_proyecto'],
+                    $data['descripcion_tecnica'] ?? null,
                     $data['rol_desarrollador'] ?? null,
                     $data['fecha_inicio'] ?? null,
                     $data['fecha_fin'] ?? null,
@@ -88,39 +94,54 @@ class ProyectoController extends Controller
 
             $idProyecto = $insertedProyecto->id_proyecto;
 
-            if ($request->hasFile('archivo')) {
-                $file = $request->file('archivo');
-                $nombreArchivo = mb_convert_encoding($file->getClientOriginalName(), 'UTF-8', 'UTF-8');
-                $mimeTipo = mb_convert_encoding((string) $file->getClientMimeType(), 'UTF-8', 'UTF-8');
+            // Sync Technologies
+            if (!empty($request->input('technologies')) && is_array($request->input('technologies'))) {
+                $this->syncTechnologies($idProyecto, $request->input('technologies'));
+            }
 
-                $path = $file->storeAs(
-                    'proyectos/' . $idProyecto,
-                    $nombreArchivo,
-                    'public'
-                );
+            // Handle multiple files
+            if ($request->hasFile('evidences')) {
+                $files = $request->file('evidences');
+                $folders = $request->input('evidence_folders', []);
 
-                $url = Storage::disk('public')->url($path);
+                foreach ($files as $index => $file) {
+                    $nombreArchivo = mb_convert_encoding($file->getClientOriginalName(), 'UTF-8', 'UTF-8');
+                    $mimeTipo = mb_convert_encoding((string) $file->getClientMimeType(), 'UTF-8', 'UTF-8');
+                    $folder = $folders[$index] ?? 'root/';
 
-                DB::insert(
-                    'INSERT INTO "Evidencia_Digital" (
-                        id_proyecto,
-                        id_usuario,
-                        tipo_evidencia,
-                        titulo,
-                        url_enlace,
-                        nombre_archivo,
-                        tipo_mime
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                    [
-                        $idProyecto,
-                        $idUsuario,
-                        'documento',
-                        'Evidencia de ' . $data['nombre_proyecto'],
-                        $url,
-                        $nombreArchivo,
-                        $mimeTipo,
-                    ]
-                );
+                    $path = $file->storeAs(
+                        'evidences/' . $idProyecto,
+                        time() . '-' . $nombreArchivo,
+                        'public'
+                    );
+
+                    $url = Storage::disk('public')->url($path);
+
+                    DB::insert(
+                        'INSERT INTO "Evidencia_Digital" (
+                            id_proyecto,
+                            id_usuario,
+                            tipo_evidencia,
+                            titulo,
+                            url_enlace,
+                            nombre_archivo,
+                            tipo_mime,
+                            fecha_carga,
+                            estado_revision
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                        [
+                            $idProyecto,
+                            $idUsuario,
+                            $this->resolveType($mimeTipo),
+                            $folder . $nombreArchivo,
+                            $url,
+                            $nombreArchivo,
+                            $mimeTipo,
+                            now(),
+                            'en_revision'
+                        ]
+                    );
+                }
             }
 
             return response()->json([
@@ -142,6 +163,269 @@ class ProyectoController extends Controller
                 'message' => $safeMessage ?: 'Error al crear el proyecto.',
                 'trace' => $this->sanitizeUtf8($e->getTraceAsString()),
             ], 500);
+        }
+    }
+
+    public function show(Request $request, $id): JsonResponse
+    {
+        $user = $request->user();
+        $idUsuario = $this->generadorUsuarioSync->ensureForLaravelUser($user);
+
+        $proyecto = DB::selectOne(
+            'SELECT p.*
+            FROM "Proyecto" p
+            JOIN "Portafolio" pf ON p.id_portafolio = pf.id_portafolio
+            WHERE p.id_proyecto = ? AND pf.id_usuario = ?',
+            [$id, $idUsuario]
+        );
+
+        if (!$proyecto) {
+            return response()->json(['message' => 'Proyecto no encontrado.'], 404);
+        }
+
+        $tecnologias = DB::select(
+            'SELECT t.nombre_tecnologia
+            FROM "Tecnologia" t
+            JOIN "Tecnologia_Proyecto" tp ON t.id_tecnologia = tp.id_tecnologia
+            WHERE tp.id_proyecto = ?',
+            [$id]
+        );
+
+        $evidencias = DB::select(
+            'SELECT id_evidencia AS id, titulo, url_enlace, nombre_archivo, tipo_mime, fecha_carga, visibilidad, estado_revision
+            FROM "Evidencia_Digital"
+            WHERE id_proyecto = ?',
+            [$id]
+        );
+
+        return response()->json([
+            'proyecto' => $proyecto,
+            'tecnologias' => array_column($tecnologias, 'nombre_tecnologia'),
+            'evidencias' => $evidencias
+        ]);
+    }
+
+    public function update(Request $request, $id): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            $idUsuario = $this->generadorUsuarioSync->ensureForLaravelUser($user);
+
+            $proyecto = DB::selectOne(
+                'SELECT p.id_proyecto
+                FROM "Proyecto" p
+                JOIN "Portafolio" pf ON p.id_portafolio = pf.id_portafolio
+                WHERE p.id_proyecto = ? AND pf.id_usuario = ?',
+                [$id, $idUsuario]
+            );
+
+            if (!$proyecto) {
+                return response()->json(['message' => 'No autorizado o proyecto no encontrado.'], 403);
+            }
+
+            $data = $request->validate([
+                'nombre_proyecto' => 'required|string|max:150',
+                'descripcion_proyecto' => 'required|string',
+                'descripcion_tecnica' => 'nullable|string',
+                'rol_desarrollador' => 'nullable|string|max:100',
+                'fecha_inicio' => 'nullable|date',
+                'fecha_fin' => 'nullable|date',
+                'enlace_repositorio' => 'nullable|url|max:255',
+                'enlace_proyecto_activo' => 'nullable|url|max:255',
+                'estado_proyecto' => 'nullable|in:en_desarrollo,completado,pausado',
+                'evidences' => 'nullable|array',
+                'evidences.*' => 'file|max:51200',
+                'evidence_folders' => 'nullable|array',
+                'technologies' => 'nullable|array',
+                'deleted_evidences' => 'nullable|array',
+            ]);
+
+            DB::update(
+                'UPDATE "Proyecto" SET
+                    nombre_proyecto = ?,
+                    descripcion_proyecto = ?,
+                    descripcion_tecnica = ?,
+                    rol_desarrollador = ?,
+                    fecha_inicio = ?,
+                    fecha_fin = ?,
+                    enlace_repositorio = ?,
+                    enlace_proyecto_activo = ?,
+                    estado_proyecto = ?
+                WHERE id_proyecto = ?',
+                [
+                    $data['nombre_proyecto'],
+                    $data['descripcion_proyecto'],
+                    $data['descripcion_tecnica'] ?? null,
+                    $data['rol_desarrollador'] ?? null,
+                    $data['fecha_inicio'] ?? null,
+                    $data['fecha_fin'] ?? null,
+                    $data['enlace_repositorio'] ?? null,
+                    $data['enlace_proyecto_activo'] ?? null,
+                    $data['estado_proyecto'] ?? 'completado',
+                    $id
+                ]
+            );
+
+            // Handle deleted evidences
+            if (!empty($data['deleted_evidences'])) {
+                foreach ($data['deleted_evidences'] as $evId) {
+                    DB::delete('DELETE FROM "Evidencia_Digital" WHERE id_evidencia = ? AND id_proyecto = ?', [$evId, $id]);
+                }
+            }
+
+            // Sync Technologies
+            if (isset($data['technologies'])) {
+                $this->syncTechnologies($id, $data['technologies']);
+            }
+
+            // Handle new files
+            if ($request->hasFile('evidences')) {
+                $files = $request->file('evidences');
+                $folders = $request->input('evidence_folders', []);
+
+                foreach ($files as $index => $file) {
+                    $nombreArchivo = mb_convert_encoding($file->getClientOriginalName(), 'UTF-8', 'UTF-8');
+                    $mimeTipo = mb_convert_encoding((string) $file->getClientMimeType(), 'UTF-8', 'UTF-8');
+                    $folder = $folders[$index] ?? 'root/';
+
+                    $path = $file->storeAs(
+                        'evidences/' . $id,
+                        time() . '-' . $nombreArchivo,
+                        'public'
+                    );
+
+                    $url = Storage::disk('public')->url($path);
+
+                    DB::insert(
+                        'INSERT INTO "Evidencia_Digital" (
+                            id_proyecto,
+                            id_usuario,
+                            tipo_evidencia,
+                            titulo,
+                            url_enlace,
+                            nombre_archivo,
+                            tipo_mime,
+                            fecha_carga,
+                            estado_revision
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                        [
+                            $id,
+                            $idUsuario,
+                            $this->resolveType($mimeTipo),
+                            $folder . $nombreArchivo,
+                            $url,
+                            $nombreArchivo,
+                            $mimeTipo,
+                            now(),
+                            'en_revision'
+                        ]
+                    );
+                }
+            }
+
+            return response()->json([
+                'message' => 'Proyecto actualizado exitosamente.',
+            ]);
+        } catch (\Throwable $e) {
+            $message = $e->getMessage();
+            $safeMessage = rtrim(mb_convert_encoding($message, 'UTF-8', 'ISO-8859-1,Windows-1252,UTF-8'));
+            return response()->json([
+                'message' => $safeMessage ?: 'Error al actualizar el proyecto.',
+                'trace' => $this->sanitizeUtf8($e->getTraceAsString()),
+            ], 500);
+        }
+    }
+
+    public function updateEvidence(Request $request, $id): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            $idUsuario = $this->generadorUsuarioSync->ensureForLaravelUser($user);
+
+            $evidence = DB::selectOne(
+                'SELECT * FROM "Evidencia_Digital" WHERE id_evidencia = ? AND id_usuario = ?',
+                [$id, $idUsuario]
+            );
+
+            if (!$evidence) {
+                return response()->json(['message' => 'Evidencia no encontrada o no autorizada.'], 404);
+            }
+
+            $data = $request->validate([
+                'titulo' => 'nullable|string|max:200',
+                'tipo_evidencia' => 'nullable|in:imagen,documento,video,enlace',
+                'estado_revision' => 'nullable|in:en_revision,verificado,rechazado',
+            ]);
+
+            $updates = [];
+            $params = [];
+
+            if (isset($data['titulo'])) {
+                $updates[] = 'titulo = ?';
+                $params[] = $data['titulo'];
+            }
+            if (isset($data['tipo_evidencia'])) {
+                $updates[] = 'tipo_evidencia = ?';
+                $params[] = $data['tipo_evidencia'];
+            }
+            if (isset($data['estado_revision'])) {
+                $updates[] = 'estado_revision = ?';
+                $params[] = $data['estado_revision'];
+            }
+
+            if (empty($updates)) {
+                return response()->json(['message' => 'No hay campos para actualizar.'], 400);
+            }
+
+            $params[] = $id;
+            $params[] = $idUsuario;
+
+            DB::update(
+                'UPDATE "Evidencia_Digital" SET ' . implode(', ', $updates) . ' WHERE id_evidencia = ? AND id_usuario = ?',
+                $params
+            );
+
+            return response()->json([
+                'message' => 'Evidencia actualizada correctamente.',
+            ]);
+        } catch (\Throwable $e) {
+            $message = $e->getMessage();
+            $safeMessage = rtrim(mb_convert_encoding($message, 'UTF-8', 'ISO-8859-1,Windows-1252,UTF-8'));
+            return response()->json([
+                'message' => $safeMessage ?: 'Error al actualizar la evidencia.',
+                'trace' => $this->sanitizeUtf8($e->getTraceAsString()),
+            ], 500);
+        }
+    }
+
+    private function resolveType($mime): string
+    {
+        if (str_starts_with($mime, 'image/')) return 'imagen';
+        if (str_starts_with($mime, 'video/')) return 'video';
+        return 'documento';
+    }
+
+    private function syncTechnologies(int $projectId, array $technologies): void
+    {
+        DB::delete('DELETE FROM "Tecnologia_Proyecto" WHERE id_proyecto = ?', [$projectId]);
+        
+        foreach ($technologies as $techName) {
+            $tech = DB::selectOne('SELECT id_tecnologia FROM "Tecnologia" WHERE nombre_tecnologia = ?', [$techName]);
+            
+            if (!$tech) {
+                $inserted = DB::selectOne(
+                    'INSERT INTO "Tecnologia" (nombre_tecnologia, categoria) VALUES (?, ?) RETURNING id_tecnologia',
+                    [$techName, 'otro']
+                );
+                $techId = $inserted->id_tecnologia;
+            } else {
+                $techId = $tech->id_tecnologia;
+            }
+
+            DB::insert(
+                'INSERT INTO "Tecnologia_Proyecto" (id_proyecto, id_tecnologia, nivel_utilizacion) VALUES (?, ?, ?)',
+                [$projectId, $techId, 'intermedio']
+            );
         }
     }
 

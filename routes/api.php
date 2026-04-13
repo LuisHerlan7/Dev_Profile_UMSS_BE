@@ -48,7 +48,10 @@ Route::middleware('auth:sanctum')->prefix('developer')->group(function (): void 
     
     // Proyectos
     Route::post('/proyecto', [\App\Http\Controllers\ProyectoController::class, 'store']);
+    Route::get('/proyecto/{id}', [\App\Http\Controllers\ProyectoController::class, 'show']);
+    Route::post('/proyecto/{id}', [\App\Http\Controllers\ProyectoController::class, 'update']);
     Route::delete('/proyecto/{id}', [\App\Http\Controllers\ProyectoController::class, 'destroy']);
+    Route::put('/evidencias/{id}', [\App\Http\Controllers\ProyectoController::class, 'updateEvidence']);
     
     // Descarga de Archivos Protegidos
     Route::prefix('files')->group(function (): void {
@@ -65,11 +68,12 @@ Route::prefix('developer/files')->group(function (): void {
     Route::get('/experiencia/{id}', [\App\Http\Controllers\FileDownloadController::class, 'downloadExperiencia']);
     Route::get('/formacion/{id}', [\App\Http\Controllers\FileDownloadController::class, 'downloadFormacion']);
     Route::get('/proyecto/{id}', [\App\Http\Controllers\FileDownloadController::class, 'downloadProyecto']);
+    Route::get('/evidencia/{id}', [\App\Http\Controllers\FileDownloadController::class, 'downloadEvidencia']);
 });
 
 // Nuevas rutas de la rama dev
 Route::middleware('auth:sanctum')->group(function (): void {
-    Route::get('/dashboard/developer', [DeveloperDashboardController::class, 'show']);
+    Route::get('/dashboard/developer', [\App\Http\Controllers\DeveloperDashboardController::class, 'index']);
     Route::post('/projects', [ProjectController::class, 'store']);
     Route::post('/projects/{projectId}/evidences', [ProjectController::class, 'uploadEvidence']);
 });

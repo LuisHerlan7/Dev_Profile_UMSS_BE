@@ -22,13 +22,19 @@ class FileDownloadController extends Controller
 
     public function downloadProyecto($id)
     {
-        $fileRow = DB::selectOne('SELECT archivo, nombre_archivo, tipo_mime FROM "Evidencia_Digital" WHERE id_proyecto = ? LIMIT 1', [$id]);
+        $fileRow = DB::selectOne('SELECT archivo, nombre_archivo, tipo_mime, url_enlace FROM "Evidencia_Digital" WHERE id_proyecto = ? LIMIT 1', [$id]);
         if ($fileRow) {
             $fileRow->archivo_evidencia = $fileRow->archivo;
             $fileRow->nombre_archivo_evidencia = $fileRow->nombre_archivo;
             $fileRow->mime_tipo_evidencia = $fileRow->tipo_mime;
         }
         return $this->serveFile($fileRow, 'proyecto_' . $id);
+    }
+
+    public function downloadEvidencia($id)
+    {
+        $fileRow = DB::selectOne('SELECT archivo as archivo_evidencia, nombre_archivo as nombre_archivo_evidencia, tipo_mime as mime_tipo_evidencia, url_enlace FROM "Evidencia_Digital" WHERE id_evidencia = ?', [$id]);
+        return $this->serveFile($fileRow, 'evidencia_' . $id);
     }
 
     public function getAvatar($id)
@@ -43,11 +49,27 @@ class FileDownloadController extends Controller
 
     private function serveFile($fileRow, $defaultName)
     {
-        if (!$fileRow || !$fileRow->archivo_evidencia) {
+        if (!$fileRow) {
             abort(404, 'Archivo no encontrado');
         }
 
-        $content = $fileRow->archivo_evidencia;
+        $content = $fileRow->archivo_evidencia ?? null;
+        
+        // Si no hay blob en DB, intentar recuperarlo del disco si hay una URL/Path
+        if (!$content && !empty($fileRow->url_enlace)) {
+            $url = $fileRow->url_enlace;
+            // Extraer la parte relativa después de /storage/
+            $parts = explode('/storage/', $url);
+            $relativePath = end($parts);
+            
+            if (\Illuminate\Support\Facades\Storage::disk('public')->exists($relativePath)) {
+                $content = \Illuminate\Support\Facades\Storage::disk('public')->get($relativePath);
+            }
+        }
+
+        if (!$content) {
+            abort(404, 'No se pudo recuperar el contenido del archivo.');
+        }
         
         // Manejar recursos de Postgres
         if (is_resource($content)) {

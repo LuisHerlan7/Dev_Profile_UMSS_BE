@@ -16,6 +16,7 @@ class DeveloperDashboardController extends Controller
 
     public function index(Request $request): JsonResponse
     {
+        \Illuminate\Support\Facades\Log::info('RESTORED_DASHBOARD_CONTROLLER_CALLED');
         /** @var User $user */
         $user = $request->user();
 
@@ -93,6 +94,27 @@ class DeveloperDashboardController extends Controller
             [$idUsuario]
         );
 
+        $evidencias = DB::select(
+            'SELECT e.*, p.nombre_proyecto
+             FROM "Evidencia_Digital" e
+             LEFT JOIN "Proyecto" p ON e.id_proyecto = p.id_proyecto
+             WHERE e.id_usuario = ?
+             ORDER BY e.fecha_carga DESC',
+            [$idUsuario]
+        );
+
+        $evidenciasMapeadas = array_map(function ($e) {
+            return [
+                'id' => (string) $e->id_evidencia,
+                'title' => $e->titulo,
+                'type' => $e->tipo_evidencia,
+                'status' => $e->estado_revision,
+                'file_url' => '/api/developer/files/evidencia/' . $e->id_evidencia,
+                'project' => $e->nombre_proyecto ?? 'Proyecto Sin Nombre',
+                'created_at' => $e->fecha_carga ? \Illuminate\Support\Carbon::parse($e->fecha_carga)->format('d/m/Y H:i') : null,
+            ];
+        }, $evidencias);
+
         $proyectosNormalizados = array_map(function ($p) use ($idUsuario) {
             $tags = $p->tecnologias ?? null;
             if (is_string($tags)) {
@@ -135,6 +157,7 @@ class DeveloperDashboardController extends Controller
             'formaciones' => $formaciones,
             'visibilidad' => $visibilidad,
             'redes' => $redes,
+            'evidences' => $evidenciasMapeadas,
         ]);
     }
 }

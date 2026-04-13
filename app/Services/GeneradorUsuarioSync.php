@@ -14,18 +14,20 @@ class GeneradorUsuarioSync
      */
     public function ensureForLaravelUser(User $user): int
     {
-        $row = DB::selectOne('SELECT id_usuario FROM "Usuario" WHERE correo = ?', [$user->email]);
-        if ($row !== null) {
-            return (int) $row->id_usuario;
+        $id = DB::table('Usuario')
+            ->where('correo', $user->email)
+            ->value('id_usuario');
+
+        if ($id !== null) {
+            return (int) $id;
         }
 
-        $inserted = DB::selectOne(
-            'INSERT INTO "Usuario" (nombre_completo, correo, contraseña_hash, fecha_creacion)
-             VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-             RETURNING id_usuario',
-            [$user->name, $user->email, $user->getAttributes()['password']]
-        );
-
-        return (int) $inserted->id_usuario;
+        return (int) DB::table('Usuario')->insertGetId([
+            'nombre_completo' => $user->name,
+            'correo' => $user->email,
+            'contraseña_hash' => $user->password,
+            'estado_perfil' => 'activo',
+            'visibilidad_perfil' => 'publico',
+        ], 'id_usuario');
     }
 }
