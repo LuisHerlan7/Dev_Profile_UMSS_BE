@@ -12,7 +12,11 @@ class RegisterController extends Controller
 {
     public function register(Request $request)
     {
-        $validator = Validator::make($request->all(), User::validationRules());
+        $validator = Validator::make(
+            $request->all(),
+            User::validationRules(),
+            User::validationMessages()
+        );
 
         if ($validator->fails()) {
             return response()->json($validator->errors(), 422);

@@ -6,10 +6,15 @@
     "keywords": ["laravel", "framework"],
     "license": "MIT",
     "require": {
+ dev
+        "php": "^8.0",
+        "laravel/framework": "^9.0",
+
         "php": "^8.2",
         "laravel/framework": "^11.0",
         "laravel/sanctum": "^4.3",
         "laravel/socialite": "^5.26",
+ dev
         "laravel/tinker": "^3.0"
     },
     "require-dev": {
@@ -17,8 +22,13 @@
         "laravel/pail": "^1.1",
         "laravel/pint": "^1.13",
         "mockery/mockery": "^1.6",
+ dev
+        "nunomaduro/collision": "^8.6",
+        "phpunit/phpunit": "^10.0"
+
         "nunomaduro/collision": "^8.1",
         "phpunit/phpunit": "^11.0"
+ dev
     },
     "autoload": {
         "psr-4": {
