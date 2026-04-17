@@ -7,11 +7,37 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var list<string>
+     */
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+        'role',
+        'provider',
+        'provider_id',
+        'avatar',
+    ];
+
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var list<string>
+     */
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
 
     protected $fillable = [
         'name',
@@ -37,6 +63,7 @@ class User extends Authenticatable
     {
         return [
             'name' => 'required|string|max:255',
+ dev
             'email' => [
                 'required',
                 'string',
@@ -46,6 +73,10 @@ class User extends Authenticatable
                 'regex:/^[\w.+-]+@(gmail\.com|hotmail\.com|outlook\.com|outlock\.com)$/i',
             ],
             'password' => 'required|string|min:8|confirmed',
+
+            'email' => 'required|string|email|max:255|unique:users,email',
+            'password' => 'required|string|min:8|confirmed|regex:/^\S+$/',
+ dev
         ];
     }
 
