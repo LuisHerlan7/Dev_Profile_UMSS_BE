@@ -22,10 +22,12 @@ class RegisterController extends Controller
             return response()->json($validator->errors(), 422);
         }
 
+        $hashedPassword = Hash::make($request->password);
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'password' => $hashedPassword,
             'role' => 'desarrollador',
         ]);
 
@@ -34,12 +36,14 @@ class RegisterController extends Controller
             DB::table('Usuario')->insert([
                 'nombre_completo' => $user->name,
                 'correo' => $user->email,
-                'contraseña_hash' => $user->password,
+                'contraseña_hash' => $hashedPassword,
                 'estado_perfil' => 'activo',
                 'visibilidad_perfil' => 'publico',
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
         }
 
-        return response()->json(['message' => 'User registered successfully', 'user' => $user], 201);
+        return response()->json(['message' => 'Usuario registrado correctamente.', 'user' => $user], 201);
     }
 }

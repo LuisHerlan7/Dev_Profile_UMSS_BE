@@ -39,17 +39,6 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-    ];
-
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
-
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
@@ -63,20 +52,8 @@ class User extends Authenticatable
     {
         return [
             'name' => 'required|string|max:255',
- dev
-            'email' => [
-                'required',
-                'string',
-                'email',
-                'max:255',
-                'unique:users,email',
-                'regex:/^[\w.+-]+@(gmail\.com|hotmail\.com|outlook\.com|outlock\.com)$/i',
-            ],
-            'password' => 'required|string|min:8|confirmed',
-
             'email' => 'required|string|email|max:255|unique:users,email',
-            'password' => 'required|string|min:8|confirmed|regex:/^\S+$/',
- dev
+            'password' => 'required|string|min:8|confirmed',
         ];
     }
 
