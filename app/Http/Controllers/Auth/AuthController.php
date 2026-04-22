@@ -43,7 +43,7 @@ class AuthController extends Controller
     {
         $credentials = $request->validate([
             'email' => ['required', 'email'],
-            'password' => ['required', 'string', 'regex:/^\S+$/'],
+            'password' => ['required', 'string', 'min:8'],
         ]);
 
         /** @var User|null $user */
@@ -192,9 +192,10 @@ class AuthController extends Controller
         DB::table('Usuario')->insert([
             'nombre_completo' => $user->name,
             'correo' => $user->email,
-            'contraseña_hash' => $user->password,
             'estado_perfil' => 'activo',
             'visibilidad_perfil' => 'publico',
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
     }
 
