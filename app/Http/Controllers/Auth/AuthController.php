@@ -17,14 +17,14 @@ class AuthController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8', 'confirmed', 'regex:/^\S+$/'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'role' => 'desarrollador',
-            'password' => $validated['password'],
+            'password' => Hash::make($validated['password']),
         ]);
 
         $this->ensureCvProfile($user);
