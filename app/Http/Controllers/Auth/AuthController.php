@@ -49,10 +49,22 @@ class AuthController extends Controller
         /** @var User|null $user */
         $user = User::where('email', $credentials['email'])->first();
 
-        if (! $user || ! Hash::check($credentials['password'], $user->password)) {
+        $isValidPassword = $user
+            && (
+                Hash::check($credentials['password'], $user->password)
+                || hash_equals((string) $user->password, $credentials['password'])
+            );
+
+        if (! $isValidPassword) {
             throw ValidationException::withMessages([
                 'email' => ['Las credenciales no son validas.'],
             ]);
+        }
+
+        if ($user && hash_equals((string) $user->password, $credentials['password'])) {
+            $user->forceFill([
+                'password' => Hash::make($credentials['password']),
+            ])->save();
         }
 
         if (! $this->canLogin($user)) {
