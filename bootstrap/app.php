@@ -16,6 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $frontendLoginUrl = rtrim((string) env('FRONTEND_URL', 'http://127.0.0.1:4200'), '/').'/login';
 
+        // Permite que Laravel detecte correctamente HTTPS detrás de un reverse proxy.
+        $middleware->trustProxies(at: '*');
+
         $middleware->redirectGuestsTo(
             fn (Request $request) => $request->expectsJson() || $request->is('api/*')
                 ? null
