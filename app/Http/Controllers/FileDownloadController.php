@@ -20,7 +20,7 @@ class FileDownloadController extends Controller
     public function downloadExperiencia(int $id): Response
     {
         $row = DB::selectOne('
-            SELECT archivo_evidencia, tipo_mime_evidencia, nombre_archivo_evidencia
+            SELECT archivo_evidencia, mime_tipo_evidencia AS tipo_mime_evidencia, nombre_archivo_evidencia
             FROM "Experiencia_Laboral"
             WHERE id_experiencia = ?
             LIMIT 1
@@ -40,7 +40,7 @@ class FileDownloadController extends Controller
     public function downloadFormacion(int $id): Response
     {
         $row = DB::selectOne('
-            SELECT archivo_evidencia, tipo_mime_evidencia, nombre_archivo_evidencia
+            SELECT archivo_evidencia, mime_tipo_evidencia AS tipo_mime_evidencia, nombre_archivo_evidencia
             FROM "Formacion_Academica"
             WHERE id_formacion = ?
             LIMIT 1

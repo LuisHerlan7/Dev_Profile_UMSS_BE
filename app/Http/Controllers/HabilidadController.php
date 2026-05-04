@@ -28,10 +28,18 @@ class HabilidadController extends Controller
             'technical.*.name' => ['required', 'string', 'max:50'],
             'technical.*.level' => ['nullable', 'string', 'in:Principiante,Intermedio,Avanzado,Experto,Basico,basico,intermedio,avanzado,experto'],
             'technical.*.progress' => ['nullable', 'integer', 'min:0', 'max:100'],
+            'technical.*.links' => ['nullable', 'array', 'max:5'],
+            'technical.*.links.*.referenceType' => ['required_with:technical.*.links', 'string', 'in:project,formation'],
+            'technical.*.links.*.referenceId' => ['required_with:technical.*.links', 'integer'],
+            'technical.*.links.*.label' => ['required_with:technical.*.links', 'string', 'max:200'],
             'soft' => ['nullable', 'array'],
             'soft.*.name' => ['required', 'string', 'max:50'],
             'soft.*.level' => ['nullable', 'string', 'in:Principiante,Intermedio,Avanzado,Experto,Basico,basico,intermedio,avanzado,experto'],
             'soft.*.progress' => ['nullable', 'integer', 'min:0', 'max:100'],
+            'soft.*.links' => ['nullable', 'array', 'max:5'],
+            'soft.*.links.*.referenceType' => ['required_with:soft.*.links', 'string', 'in:experience,formation'],
+            'soft.*.links.*.referenceId' => ['required_with:soft.*.links', 'integer'],
+            'soft.*.links.*.label' => ['required_with:soft.*.links', 'string', 'max:200'],
         ]);
 
         $technical = array_map(function (array $skill): array {
@@ -39,6 +47,7 @@ class HabilidadController extends Controller
                 'name' => trim((string) ($skill['name'] ?? '')),
                 'level' => (string) ($skill['level'] ?? 'Intermedio'),
                 'progress' => isset($skill['progress']) ? (int) $skill['progress'] : null,
+                'links' => array_values($skill['links'] ?? []),
             ];
         }, $payload['technical'] ?? []);
 
@@ -47,6 +56,7 @@ class HabilidadController extends Controller
                 'name' => trim((string) ($skill['name'] ?? '')),
                 'level' => (string) ($skill['level'] ?? 'Intermedio'),
                 'progress' => isset($skill['progress']) ? (int) $skill['progress'] : null,
+                'links' => array_values($skill['links'] ?? []),
             ];
         }, $payload['soft'] ?? []);
 
@@ -96,41 +106,190 @@ class HabilidadController extends Controller
             // Eliminar todas las habilidades actuales del usuario
             DB::delete('DELETE FROM "Habilidad" WHERE id_usuario = ?', [$idUsuario]);
 
-            $inserts = [];
-
             foreach ($technical as $tech) {
                 if (!empty($tech['name'])) {
-                    $inserts[] = [
-                        'id_usuario' => $idUsuario,
-                        'nombre_habilidad' => $tech['name'],
-                        'tipo_habilidad' => 'tecnica',
-                        'nivel_dominio' => $mapLevel($tech['level'] ?? 'Intermedio'),
-                        'porcentaje_dominio' => $resolveProgress($tech['progress'], $tech['level'] ?? 'Intermedio'),
-                        'estado' => 'activo'
-                    ];
+                    $insertedSkill = DB::selectOne(
+                        'INSERT INTO "Habilidad" (
+                            id_usuario,
+                            nombre_habilidad,
+                            tipo_habilidad,
+                            nivel_dominio,
+                            porcentaje_dominio,
+                            estado
+                        ) VALUES (?, ?, ?, ?, ?, ?)
+                        RETURNING id_habilidad',
+                        [
+                            $idUsuario,
+                            $tech['name'],
+                            'tecnica',
+                            $mapLevel($tech['level'] ?? 'Intermedio'),
+                            $resolveProgress($tech['progress'], $tech['level'] ?? 'Intermedio'),
+                            'activo',
+                        ]
+                    );
+
+                    $this->syncSkillLinks(
+                        $idUsuario,
+                        (int) $insertedSkill->id_habilidad,
+                        $tech['name'],
+                        'tecnica',
+                        $tech['links'] ?? []
+                    );
                 }
             }
 
             foreach ($soft as $s) {
                 if (!empty($s['name'])) {
-                    $inserts[] = [
-                        'id_usuario' => $idUsuario,
-                        'nombre_habilidad' => $s['name'],
-                        'tipo_habilidad' => 'blanda',
-                        'nivel_dominio' => $mapLevel($s['level'] ?? 'Intermedio'),
-                        'porcentaje_dominio' => $resolveProgress($s['progress'], $s['level'] ?? 'Intermedio'),
-                        'estado' => 'activo'
-                    ];
-                }
-            }
+                    $insertedSkill = DB::selectOne(
+                        'INSERT INTO "Habilidad" (
+                            id_usuario,
+                            nombre_habilidad,
+                            tipo_habilidad,
+                            nivel_dominio,
+                            porcentaje_dominio,
+                            estado
+                        ) VALUES (?, ?, ?, ?, ?, ?)
+                        RETURNING id_habilidad',
+                        [
+                            $idUsuario,
+                            $s['name'],
+                            'blanda',
+                            $mapLevel($s['level'] ?? 'Intermedio'),
+                            $resolveProgress($s['progress'], $s['level'] ?? 'Intermedio'),
+                            'activo',
+                        ]
+                    );
 
-            if (count($inserts) > 0) {
-                DB::table('Habilidad')->insert($inserts);
+                    $this->syncSkillLinks(
+                        $idUsuario,
+                        (int) $insertedSkill->id_habilidad,
+                        $s['name'],
+                        'blanda',
+                        $s['links'] ?? []
+                    );
+                }
             }
 
             return response()->json([
                 'message' => 'Habilidades sincronizadas exitosamente.'
             ], 200);
         });
+    }
+
+    private function syncSkillLinks(
+        int $idUsuario,
+        int $skillId,
+        string $skillName,
+        string $skillType,
+        array $links
+    ): void {
+        foreach ($links as $link) {
+            $referenceType = (string) ($link['referenceType'] ?? '');
+            $referenceId = (int) ($link['referenceId'] ?? 0);
+            $label = trim((string) ($link['label'] ?? ''));
+
+            if ($label === '' || $referenceId <= 0) {
+                throw ValidationException::withMessages([
+                    'skills' => ['Cada vínculo debe apuntar a un proyecto, experiencia o certificación válidos.'],
+                ]);
+            }
+
+            if ($skillType === 'tecnica' && ! in_array($referenceType, ['project', 'formation'], true)) {
+                throw ValidationException::withMessages([
+                    'skills' => ['Las habilidades técnicas solo pueden vincularse con proyectos o certificaciones.'],
+                ]);
+            }
+
+            if ($skillType === 'blanda' && ! in_array($referenceType, ['experience', 'formation'], true)) {
+                throw ValidationException::withMessages([
+                    'skills' => ['Las habilidades blandas solo pueden vincularse con experiencias o certificaciones.'],
+                ]);
+            }
+
+            $reference = $this->resolveReferenceForSkill($idUsuario, $skillName, $referenceType, $referenceId);
+
+            if (! $reference) {
+                $message = match ($referenceType) {
+                    'project' => sprintf('El proyecto "%s" no usa %s.', $label, $skillName),
+                    'experience' => sprintf('La experiencia "%s" no parece tratar de %s.', $label, $skillName),
+                    default => sprintf('La certificación "%s" no parece respaldar %s.', $label, $skillName),
+                };
+
+                throw ValidationException::withMessages([
+                    'skills' => [$message],
+                ]);
+            }
+
+            DB::insert(
+                'INSERT INTO "Habilidad_Vinculo" (
+                    id_habilidad,
+                    tipo_referencia,
+                    id_proyecto,
+                    id_experiencia,
+                    id_formacion,
+                    etiqueta_referencia
+                ) VALUES (?, ?, ?, ?, ?, ?)',
+                [
+                    $skillId,
+                    $this->mapReferenceType($referenceType),
+                    $referenceType === 'project' ? $referenceId : null,
+                    $referenceType === 'experience' ? $referenceId : null,
+                    $referenceType === 'formation' ? $referenceId : null,
+                    $reference->label,
+                ]
+            );
+        }
+    }
+
+    private function resolveReferenceForSkill(
+        int $idUsuario,
+        string $skillName,
+        string $referenceType,
+        int $referenceId
+    ): ?object {
+        $normalizedSkill = mb_strtolower(trim($skillName), 'UTF-8');
+        $searchLike = '%' . $normalizedSkill . '%';
+
+        return match ($referenceType) {
+            'project' => DB::selectOne(
+                'SELECT p.id_proyecto AS id, p.nombre_proyecto AS label
+                 FROM "Proyecto" p
+                 INNER JOIN "Portafolio" pf ON pf.id_portafolio = p.id_portafolio
+                 INNER JOIN "Tecnologia_Proyecto" tp ON tp.id_proyecto = p.id_proyecto
+                 INNER JOIN "Tecnologia" t ON t.id_tecnologia = tp.id_tecnologia
+                 WHERE p.id_proyecto = ?
+                   AND pf.id_usuario = ?
+                   AND LOWER(t.nombre_tecnologia) = ?',
+                [$referenceId, $idUsuario, $normalizedSkill]
+            ),
+            'experience' => DB::selectOne(
+                'SELECT id_experiencia AS id,
+                        CONCAT(titulo_puesto, \' @ \', nombre_empresa) AS label
+                 FROM "Experiencia_Laboral"
+                 WHERE id_experiencia = ?
+                   AND id_usuario = ?
+                   AND LOWER(CONCAT_WS(\' \', titulo_puesto, nombre_empresa, COALESCE(descripcion_puesto, \'\'))) LIKE ?',
+                [$referenceId, $idUsuario, $searchLike]
+            ),
+            'formation' => DB::selectOne(
+                'SELECT id_formacion AS id,
+                        carrera_especialidad AS label
+                 FROM "Formacion_Academica"
+                 WHERE id_formacion = ?
+                   AND id_usuario = ?
+                   AND LOWER(CONCAT_WS(\' \', carrera_especialidad, institucion, COALESCE(descripcion, \'\'))) LIKE ?',
+                [$referenceId, $idUsuario, $searchLike]
+            ),
+            default => null,
+        };
+    }
+
+    private function mapReferenceType(string $referenceType): string
+    {
+        return match ($referenceType) {
+            'project' => 'proyecto',
+            'experience' => 'experiencia',
+            default => 'formacion',
+        };
     }
 }
