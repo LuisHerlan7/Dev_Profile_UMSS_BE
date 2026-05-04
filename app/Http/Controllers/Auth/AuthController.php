@@ -204,10 +204,12 @@ class AuthController extends Controller
         DB::table('Usuario')->insert([
             'nombre_completo' => $user->name,
             'correo' => $user->email,
+            'correo_contacto' => $user->email,
+            'contraseña_hash' => (string) ($user->password ?? ''),
             'estado_perfil' => 'activo',
             'visibilidad_perfil' => 'publico',
-            'created_at' => now(),
-            'updated_at' => now(),
+            'fecha_creacion' => now(),
+            'fecha_actualizacion' => now(),
         ]);
     }
 
