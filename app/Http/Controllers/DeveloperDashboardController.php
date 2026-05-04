@@ -53,7 +53,25 @@ class DeveloperDashboardController extends Controller
         }
 
         $habilidades = DB::select(
-            'SELECT * FROM "Habilidad" WHERE id_usuario = ? ORDER BY id_habilidad',
+            'SELECT h.*,
+                    COALESCE(v.vinculos, \'[]\'::json) AS vinculos
+             FROM "Habilidad" h
+             LEFT JOIN (
+                SELECT hv.id_habilidad,
+                       json_agg(
+                           json_build_object(
+                               \'id\', hv.id_vinculo,
+                               \'tipo_referencia\', hv.tipo_referencia,
+                               \'etiqueta_referencia\', hv.etiqueta_referencia,
+                               \'referencia_id\', COALESCE(hv.id_proyecto, hv.id_experiencia, hv.id_formacion)
+                           )
+                           ORDER BY hv.id_vinculo
+                       ) AS vinculos
+                FROM "Habilidad_Vinculo" hv
+                GROUP BY hv.id_habilidad
+             ) v ON v.id_habilidad = h.id_habilidad
+             WHERE h.id_usuario = ?
+             ORDER BY h.id_habilidad',
             [$idUsuario]
         );
 
