@@ -14,7 +14,9 @@ class PublicProfileController extends Controller
             SELECT u.id_usuario, u.nombre_completo, u.profesion, u.fecha_actualizacion
             FROM "Usuario" u
             INNER JOIN users ur ON ur.email = u.correo
-            WHERE u.visibilidad_perfil = \'publico\'
+            LEFT JOIN "Configuracion_Visibilidad" cv ON cv.id_usuario = u.id_usuario
+            WHERE u.visibilidad_perfil IN (\'publico\', \'personalizado\')
+              AND COALESCE(cv.mostrar_informacion_general, TRUE) = TRUE
               AND ur.role = \'desarrollador\'
             ORDER BY u.id_usuario DESC
         ');
@@ -51,7 +53,9 @@ class PublicProfileController extends Controller
             SELECT u.*, ur.email, ur.role
             FROM "Usuario" u
             INNER JOIN users ur ON ur.email = u.correo
-            WHERE u.id_usuario = ? AND u.visibilidad_perfil = \'publico\' AND ur.role = \'desarrollador\'
+            WHERE u.id_usuario = ?
+              AND u.visibilidad_perfil IN (\'publico\', \'personalizado\')
+              AND ur.role = \'desarrollador\'
         ', [$id]);
 
         if (!$u) {
@@ -60,6 +64,9 @@ class PublicProfileController extends Controller
 
         // 2. Configuración de visibilidad
         $config = DB::selectOne('SELECT * FROM "Configuracion_Visibilidad" WHERE id_usuario = ?', [$id]);
+        if ($config && $u->visibilidad_perfil === 'personalizado' && !($config->mostrar_informacion_general ?? true)) {
+            return response()->json(['message' => 'Perfil no encontrado o privado'], 404);
+        }
         
         // 3. Redes sociales
         $redes = DB::select('SELECT nombre_red, enlace_perfil FROM "Red_Profesional" WHERE id_usuario = ?', [$id]);
@@ -76,10 +83,35 @@ class PublicProfileController extends Controller
         // 5. Habilidades (Solo si está permitido)
         $habilidades = [];
         if (!$config || $config->mostrar_habilidades) {
-            $habilidades = DB::select('SELECT id_habilidad, nombre_habilidad, tipo_habilidad, nivel_dominio, porcentaje_dominio FROM "Habilidad" WHERE id_usuario = ?', [$id]);
+            $habilidades = DB::select('
+                SELECT h.id_habilidad,
+                       h.nombre_habilidad,
+                       h.tipo_habilidad,
+                       h.nivel_dominio,
+                       h.porcentaje_dominio,
+                       COALESCE(v.vinculos, \'[]\'::json) AS vinculos
+                FROM "Habilidad" h
+                LEFT JOIN (
+                    SELECT hv.id_habilidad,
+                           json_agg(
+                               json_build_object(
+                                   \'id\', hv.id_vinculo,
+                                   \'tipo_referencia\', hv.tipo_referencia,
+                                   \'etiqueta_referencia\', hv.etiqueta_referencia,
+                                   \'referencia_id\', COALESCE(hv.id_proyecto, hv.id_experiencia, hv.id_formacion)
+                               )
+                               ORDER BY hv.id_vinculo
+                           ) AS vinculos
+                    FROM "Habilidad_Vinculo" hv
+                    GROUP BY hv.id_habilidad
+                ) v ON v.id_habilidad = h.id_habilidad
+                WHERE h.id_usuario = ?', [$id]);
             // Filtrar por destacados si hay alguno seleccionado
             if (!empty($highlights['skills'])) {
-                $habilidades = array_values(array_filter($habilidades, fn($s) => in_array((string)$s->id_habilidad, $highlights['skills'])));
+                $habilidades = array_values(array_filter($habilidades, fn($s) =>
+                    in_array((string)$s->id_habilidad, $highlights['skills'])
+                    || in_array((string)$s->nombre_habilidad, $highlights['skills'], true)
+                ));
             }
         }
 
@@ -177,14 +209,33 @@ class PublicProfileController extends Controller
                 'title' => $u->profesion ?? 'Desarrollador',
                 'summary' => $u->biografia ?? 'Sin biografía disponible.',
                 'avatarUrl' => $avatarUrl,
-                'email' => $u->email,
-                'phone' => $u->telefono,
+                'email' => (!$config || (($config->mostrar_contacto ?? true) && ($config->mostrar_correo ?? true)))
+                    ? ($u->correo_contacto ?: $u->email)
+                    : null,
+                'phone' => (!$config || (($config->mostrar_contacto ?? true) && ($config->mostrar_telefono ?? false)))
+                    ? $u->telefono
+                    : null,
+                'titleHierarchy' => $this->decodeJsonArray($u->titulos_jerarquia_json ?? null),
+                'roleHierarchy' => $this->decodeJsonArray($u->roles_jerarquia_json ?? null),
             ],
-            'social' => array_column($redes, 'enlace_perfil', 'nombre_red'),
+            'social' => (!$config || ($config->mostrar_redes_sociales ?? true))
+                ? array_column($redes, 'enlace_perfil', 'nombre_red')
+                : new \stdClass(),
             'skills' => $habilidades,
             'projects' => $proyectosResult,
             'timeline' => $timeline,
             'config' => $config
         ]);
+    }
+
+    private function decodeJsonArray(?string $value): array
+    {
+        if (! $value) {
+            return [];
+        }
+
+        $decoded = json_decode($value, true);
+
+        return is_array($decoded) ? array_values(array_map('strval', $decoded)) : [];
     }
 }
