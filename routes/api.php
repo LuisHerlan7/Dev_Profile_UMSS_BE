@@ -59,6 +59,7 @@ Route::middleware('auth:sanctum')->prefix('developer')->group(function (): void 
 
 Route::get('/portafolios', [\App\Http\Controllers\PublicProfileController::class, 'index']);
 Route::get('/portafolios/{id}', [\App\Http\Controllers\PublicProfileController::class, 'show']);
+Route::get('/portafolios/{portfolioId}/proyectos/{projectId}', [\App\Http\Controllers\PublicProfileController::class, 'showProject']);
 
 Route::prefix('developer/files')->group(function (): void {
     Route::get('/avatar/{id}', [\App\Http\Controllers\FileDownloadController::class, 'getAvatar']);
