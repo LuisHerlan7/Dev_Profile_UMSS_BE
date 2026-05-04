@@ -56,6 +56,7 @@ class ProyectoController extends Controller
                 'enlace_repositorio' => 'nullable|url|max:255',
                 'enlace_proyecto_activo' => 'nullable|url|max:255',
                 'estado_proyecto' => 'nullable|in:en_desarrollo,completado,pausado',
+                'visibilidad' => 'nullable|in:publico,privado',
                 'evidences' => 'nullable|array',
                 'evidences.*' => 'file|max:51200',
                 'evidence_folders' => 'nullable|array',
@@ -88,7 +89,7 @@ class ProyectoController extends Controller
                     $data['enlace_repositorio'] ?? null,
                     $data['enlace_proyecto_activo'] ?? null,
                     $data['estado_proyecto'] ?? 'completado',
-                    'publico',
+                    $data['visibilidad'] ?? 'publico',
                 ]
             );
 
@@ -233,6 +234,7 @@ class ProyectoController extends Controller
                 'enlace_repositorio' => 'nullable|url|max:255',
                 'enlace_proyecto_activo' => 'nullable|url|max:255',
                 'estado_proyecto' => 'nullable|in:en_desarrollo,completado,pausado',
+                'visibilidad' => 'nullable|in:publico,privado',
                 'evidences' => 'nullable|array',
                 'evidences.*' => 'file|max:51200',
                 'evidence_folders' => 'nullable|array',
@@ -250,7 +252,8 @@ class ProyectoController extends Controller
                     fecha_fin = ?,
                     enlace_repositorio = ?,
                     enlace_proyecto_activo = ?,
-                    estado_proyecto = ?
+                    estado_proyecto = ?,
+                    visibilidad = ?
                 WHERE id_proyecto = ?',
                 [
                     $data['nombre_proyecto'],
@@ -262,6 +265,7 @@ class ProyectoController extends Controller
                     $data['enlace_repositorio'] ?? null,
                     $data['enlace_proyecto_activo'] ?? null,
                     $data['estado_proyecto'] ?? 'completado',
+                    $data['visibilidad'] ?? 'publico',
                     $id
                 ]
             );
