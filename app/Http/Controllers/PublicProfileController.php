@@ -258,6 +258,126 @@ class PublicProfileController extends Controller
         ]);
     }
 
+    public function showProject($portfolioId, $projectId)
+    {
+        $owner = DB::selectOne('
+            SELECT u.id_usuario,
+                   u.nombre_completo,
+                   u.profesion,
+                   u.biografia,
+                   u.fecha_actualizacion,
+                   u.visibilidad_perfil,
+                   cv.mostrar_informacion_general,
+                   cv.mostrar_proyectos,
+                   cv.mostrar_redes_sociales,
+                   cv.mostrar_contacto,
+                   cv.mostrar_correo,
+                   cv.mostrar_telefono,
+                   cv.mostrar_habilidades
+            FROM "Portafolio" pf
+            INNER JOIN "Usuario" u ON u.id_usuario = pf.id_usuario
+            INNER JOIN users ur ON ur.email = u.correo
+            LEFT JOIN "Configuracion_Visibilidad" cv ON cv.id_usuario = u.id_usuario
+            WHERE pf.id_usuario = ?
+              AND u.visibilidad_perfil IN (\'publico\', \'personalizado\')
+              AND ur.role = \'desarrollador\'
+        ', [$portfolioId]);
+
+        if (!$owner) {
+            return response()->json(['message' => 'Proyecto no encontrado o privado'], 404);
+        }
+
+        if ($owner->visibilidad_perfil === 'personalizado' && !($owner->mostrar_informacion_general ?? true)) {
+            return response()->json(['message' => 'Proyecto no encontrado o privado'], 404);
+        }
+
+        if (!($owner->mostrar_proyectos ?? true)) {
+            return response()->json(['message' => 'Proyecto no encontrado o privado'], 404);
+        }
+
+        $portafolio = DB::selectOne(
+            'SELECT id_portafolio FROM "Portafolio" WHERE id_usuario = ?',
+            [$owner->id_usuario]
+        );
+
+        if (!$portafolio) {
+            return response()->json(['message' => 'Proyecto no encontrado o privado'], 404);
+        }
+
+        $project = DB::selectOne('
+            SELECT p.*,
+                   COALESCE(
+                       (SELECT json_agg(t.nombre_tecnologia ORDER BY t.nombre_tecnologia)
+                        FROM "Tecnologia_Proyecto" tp
+                        INNER JOIN "Tecnologia" t ON t.id_tecnologia = tp.id_tecnologia
+                        WHERE tp.id_proyecto = p.id_proyecto),
+                       \'[]\'::json
+                   ) AS tecnologias
+            FROM "Proyecto" p
+            WHERE p.id_proyecto = ?
+              AND p.id_portafolio = ?
+              AND p.visibilidad = \'publico\'
+        ', [$projectId, $portafolio->id_portafolio]);
+
+        if (!$project) {
+            return response()->json(['message' => 'Proyecto no encontrado o privado'], 404);
+        }
+
+        $evidences = DB::select('
+            SELECT id_evidencia AS id,
+                   titulo,
+                   url_enlace,
+                   nombre_archivo,
+                   tipo_mime,
+                   fecha_carga
+            FROM "Evidencia_Digital"
+            WHERE id_proyecto = ?
+              AND COALESCE(visibilidad, \'publico\') = \'publico\'
+            ORDER BY fecha_carga DESC NULLS LAST, id_evidencia DESC
+        ', [$projectId]);
+
+        $redes = DB::select(
+            'SELECT nombre_red, enlace_perfil FROM "Red_Profesional" WHERE id_usuario = ?',
+            [$owner->id_usuario]
+        );
+
+        $ts = $owner->fecha_actualizacion ? strtotime($owner->fecha_actualizacion) : time();
+        $avatarUrl = "/api/developer/files/avatar/{$owner->id_usuario}?t={$ts}";
+        $tags = is_string($project->tecnologias) ? json_decode($project->tecnologias, true) : $project->tecnologias;
+
+        return response()->json([
+            'project' => [
+                'id' => $project->id_proyecto,
+                'portfolioId' => $owner->id_usuario,
+                'title' => $project->nombre_proyecto,
+                'subtitle' => $project->rol_desarrollador ?? 'Colaborador',
+                'summary' => $project->descripcion_proyecto,
+                'description' => $project->descripcion_tecnica,
+                'status' => $project->estado_proyecto,
+                'tags' => is_array($tags) ? array_values($tags) : [],
+                'liveUrl' => $project->enlace_proyecto_activo,
+                'repoUrl' => $project->enlace_repositorio,
+                'startDate' => $project->fecha_inicio,
+                'endDate' => $project->fecha_fin,
+                'evidences' => $evidences,
+            ],
+            'owner' => [
+                'id' => $owner->id_usuario,
+                'name' => $owner->nombre_completo,
+                'title' => $owner->profesion ?? 'Desarrollador',
+                'summary' => $owner->biografia ?? 'Sin biografía disponible.',
+                'avatarUrl' => $avatarUrl,
+            ],
+            'social' => ($owner->mostrar_redes_sociales ?? true)
+                ? $this->normalizeSocialLinks($redes)
+                : new \stdClass(),
+            'contact' => [
+                'emailVisible' => (bool) (($owner->mostrar_contacto ?? true) && ($owner->mostrar_correo ?? true)),
+                'whatsappVisible' => (bool) (($owner->mostrar_contacto ?? true) && ($owner->mostrar_telefono ?? false)),
+            ],
+        ]);
+    }
+
     private function decodeJsonArray(?string $value): array
     {
         if (! $value) {
