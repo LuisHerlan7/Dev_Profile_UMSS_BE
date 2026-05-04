@@ -11,7 +11,11 @@ class PublicProfileController extends Controller
     {
         // Obtener usuarios públicos con rol desarrollador
         $usuarios = DB::select('
-            SELECT u.id_usuario, u.nombre_completo, u.profesion, u.fecha_actualizacion
+            SELECT u.id_usuario,
+                   u.nombre_completo,
+                   u.profesion,
+                   u.fecha_actualizacion,
+                   COALESCE(cv.mostrar_habilidades, TRUE) AS mostrar_habilidades
             FROM "Usuario" u
             INNER JOIN users ur ON ur.email = u.correo
             LEFT JOIN "Configuracion_Visibilidad" cv ON cv.id_usuario = u.id_usuario
@@ -23,12 +27,14 @@ class PublicProfileController extends Controller
 
         $result = [];
         foreach ($usuarios as $u) {
-            $habilidades = DB::select('
-                SELECT nombre_habilidad 
-                FROM "Habilidad" 
-                WHERE id_usuario = ? AND tipo_habilidad = \'tecnica\'
-                LIMIT 4
-            ', [$u->id_usuario]);
+            $habilidades = ($u->mostrar_habilidades ?? true)
+                ? DB::select('
+                    SELECT nombre_habilidad
+                    FROM "Habilidad"
+                    WHERE id_usuario = ? AND tipo_habilidad = \'tecnica\'
+                    LIMIT 4
+                ', [$u->id_usuario])
+                : [];
 
             $ts = $u->fecha_actualizacion ? strtotime($u->fecha_actualizacion) : time();
             $avatarUrl = "/api/developer/files/avatar/{$u->id_usuario}?t={$ts}";
@@ -109,8 +115,11 @@ class PublicProfileController extends Controller
             // Filtrar por destacados si hay alguno seleccionado
             if (!empty($highlights['skills'])) {
                 $habilidades = array_values(array_filter($habilidades, fn($s) =>
-                    in_array((string)$s->id_habilidad, $highlights['skills'])
-                    || in_array((string)$s->nombre_habilidad, $highlights['skills'], true)
+                    $this->matchesHighlight(
+                        $highlights['skills'],
+                        [(string) $s->id_habilidad],
+                        [$s->nombre_habilidad]
+                    )
                 ));
             }
         }
@@ -135,7 +144,13 @@ class PublicProfileController extends Controller
 
                 // Filtrar por destacados
                 if (!empty($highlights['projects'])) {
-                    $proyectos = array_values(array_filter($proyectos, fn($p) => in_array((string)$p->id_proyecto, $highlights['projects'])));
+                    $proyectos = array_values(array_filter($proyectos, fn($p) =>
+                        $this->matchesHighlight(
+                            $highlights['projects'],
+                            [(string) $p->id_proyecto],
+                            [$p->nombre_proyecto]
+                        )
+                    ));
                 }
 
                 foreach ($proyectos as $p) {
@@ -158,7 +173,13 @@ class PublicProfileController extends Controller
         if (!$config || $config->mostrar_experiencia) {
             $exps = DB::select('SELECT * FROM "Experiencia_Laboral" WHERE id_usuario = ? AND visibilidad = \'publico\'', [$id]);
             if (!empty($highlights['trajectory'])) {
-                $exps = array_filter($exps, fn($e) => in_array("exp-{$e->id_experiencia}", $highlights['trajectory']));
+                $exps = array_filter($exps, fn($e) =>
+                    $this->matchesHighlight(
+                        $highlights['trajectory'],
+                        ["exp-{$e->id_experiencia}", (string) $e->id_experiencia],
+                        [trim(sprintf('%s @ %s', $e->titulo_puesto, $e->nombre_empresa))]
+                    )
+                );
             }
             foreach ($exps as $e) {
                 $start = date('M Y', strtotime($e->fecha_inicio));
@@ -178,7 +199,16 @@ class PublicProfileController extends Controller
         if (!$config || $config->mostrar_formacion) {
             $forms = DB::select('SELECT * FROM "Formacion_Academica" WHERE id_usuario = ? AND visibilidad = \'publico\'', [$id]);
             if (!empty($highlights['trajectory'])) {
-                $forms = array_filter($forms, fn($f) => in_array("form-{$f->id_formacion}", $highlights['trajectory']));
+                $forms = array_filter($forms, fn($f) =>
+                    $this->matchesHighlight(
+                        $highlights['trajectory'],
+                        ["form-{$f->id_formacion}", (string) $f->id_formacion],
+                        [
+                            $f->carrera_especialidad,
+                            trim(sprintf('%s · %s', $f->carrera_especialidad, $f->institucion)),
+                        ]
+                    )
+                );
             }
             foreach ($forms as $f) {
                 $start = date('Y', strtotime($f->fecha_inicio));
@@ -219,7 +249,7 @@ class PublicProfileController extends Controller
                 'roleHierarchy' => $this->decodeJsonArray($u->roles_jerarquia_json ?? null),
             ],
             'social' => (!$config || ($config->mostrar_redes_sociales ?? true))
-                ? array_column($redes, 'enlace_perfil', 'nombre_red')
+                ? $this->normalizeSocialLinks($redes)
                 : new \stdClass(),
             'skills' => $habilidades,
             'projects' => $proyectosResult,
@@ -237,5 +267,56 @@ class PublicProfileController extends Controller
         $decoded = json_decode($value, true);
 
         return is_array($decoded) ? array_values(array_map('strval', $decoded)) : [];
+    }
+
+    private function matchesHighlight(array $highlights, array $identifiers = [], array $labels = []): bool
+    {
+        $normalizedHighlights = array_map(
+            fn ($value) => mb_strtolower(trim((string) $value), 'UTF-8'),
+            $highlights
+        );
+
+        foreach ($identifiers as $identifier) {
+            if (in_array(mb_strtolower(trim((string) $identifier), 'UTF-8'), $normalizedHighlights, true)) {
+                return true;
+            }
+        }
+
+        foreach ($labels as $label) {
+            if (in_array(mb_strtolower(trim((string) $label), 'UTF-8'), $normalizedHighlights, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function normalizeSocialLinks(array $redes): array
+    {
+        $normalized = [];
+
+        foreach ($redes as $red) {
+            $name = mb_strtolower(trim((string) ($red->nombre_red ?? '')), 'UTF-8');
+            $url = (string) ($red->enlace_perfil ?? '');
+
+            if ($url === '') {
+                continue;
+            }
+
+            $key = match (true) {
+                str_contains($name, 'github'), str_contains($name, 'git') => 'github',
+                str_contains($name, 'linkedin') => 'linkedin',
+                str_contains($name, 'website'),
+                str_contains($name, 'web'),
+                str_contains($name, 'sitio'),
+                str_contains($name, 'portfolio'),
+                str_contains($name, 'portafolio') => 'website',
+                default => $name,
+            };
+
+            $normalized[$key] = $url;
+        }
+
+        return $normalized;
     }
 }
