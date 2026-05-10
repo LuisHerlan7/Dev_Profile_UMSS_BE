@@ -13,9 +13,9 @@ Route::prefix('auth')->group(function (): void {
     Route::post('/login', [AuthController::class, 'login']);
 
     Route::get('/{provider}/redirect', [SocialAuthController::class, 'redirect'])
-        ->whereIn('provider', ['github', 'linkedin']);
+        ->whereIn('provider', ['github', 'linkedin', 'google']);
     Route::get('/{provider}/callback', [SocialAuthController::class, 'callback'])
-        ->whereIn('provider', ['github', 'linkedin']);
+        ->whereIn('provider', ['github', 'linkedin', 'google']);
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/dashboard', [AuthController::class, 'dashboard']);
