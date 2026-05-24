@@ -54,6 +54,10 @@ class SocialAuthController extends Controller
             $user->role = 'desarrollador';
         }
 
+        if (! $user->preferred_language) {
+            $user->preferred_language = 'es';
+        }
+
         $user->save();
 
         $this->ensureCvProfile($user);
