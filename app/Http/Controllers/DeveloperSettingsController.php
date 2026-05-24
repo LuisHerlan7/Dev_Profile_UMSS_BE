@@ -360,6 +360,35 @@ class DeveloperSettingsController extends Controller
         ]);
     }
 
+    public function updateLanguage(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        $idUsuario = $this->resolveDeveloperId($request);
+
+        $data = $request->validate([
+            'language' => ['required', 'in:es,en'],
+        ]);
+
+        DB::transaction(function () use ($user, $idUsuario, $data): void {
+            $user->forceFill([
+                'preferred_language' => $data['language'],
+            ])->save();
+
+            DB::update(
+                'UPDATE "Portafolio"
+                 SET idioma_principal = ?, fecha_actualizacion = ?
+                 WHERE id_usuario = ?',
+                [$data['language'], now(), $idUsuario]
+            );
+        });
+
+        return response()->json([
+            'message' => 'Idioma actualizado correctamente.',
+            'language' => $data['language'],
+        ]);
+    }
+
     private function resolveDeveloperId(Request $request): int
     {
         /** @var User $user */
