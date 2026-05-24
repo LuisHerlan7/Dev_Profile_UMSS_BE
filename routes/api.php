@@ -20,6 +20,7 @@ Route::prefix('auth')->group(function (): void {
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/dashboard', [AuthController::class, 'dashboard']);
         Route::get('/me', [AuthController::class, 'me']);
+        Route::post('/language', [AuthController::class, 'updateLanguage']);
         Route::post('/logout', [AuthController::class, 'logout']);
     });
 });
