@@ -167,6 +167,7 @@ class DeveloperDashboardController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role,
+                'preferred_language' => $user->preferred_language ?: 'es',
             ],
             'usuario' => $usuario,
             'portafolio' => $portafolio,
