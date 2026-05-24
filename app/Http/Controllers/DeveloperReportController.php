@@ -28,7 +28,6 @@ class DeveloperReportController extends Controller
         $data = $request->validate([
             'format' => ['required', 'in:pdf,word'],
             'name' => ['required', 'string', 'max:200'],
-            'content_html' => ['nullable', 'string', 'max:250000'],
         ]);
 
         $idUsuario = $this->generadorUsuarioSync->ensureForLaravelUser($user);
@@ -56,7 +55,7 @@ class DeveloperReportController extends Controller
                 $portfolio->id_portafolio,
                 'general',
                 $data['name'],
-                filled($data['content_html'] ?? null) ? $data['content_html'] : null,
+                null,
                 $data['format'] === 'word' ? 'docx' : 'pdf',
                 now(),
                 now(),
