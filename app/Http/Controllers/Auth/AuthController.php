@@ -25,6 +25,7 @@ class AuthController extends Controller
             'email' => $validated['email'],
             'role' => 'desarrollador',
             'password' => Hash::make($validated['password']),
+            'preferred_language' => 'es',
         ]);
 
         $this->ensureCvProfile($user);
@@ -128,6 +129,7 @@ class AuthController extends Controller
             'role' => $user->role,
             'avatar' => $user->avatar,
             'provider' => $user->provider,
+            'preferred_language' => $user->preferred_language ?: 'es',
         ];
     }
 
