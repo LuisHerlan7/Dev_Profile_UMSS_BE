@@ -25,6 +25,7 @@ class AuthController extends Controller
             'email' => $validated['email'],
             'role' => 'desarrollador',
             'password' => Hash::make($validated['password']),
+            'preferred_language' => 'es',
         ]);
 
         $this->ensureCvProfile($user);
@@ -116,6 +117,38 @@ class AuthController extends Controller
         ]);
     }
 
+    public function updateLanguage(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $data = $request->validate([
+            'language' => ['required', 'in:es,en'],
+        ]);
+
+        DB::transaction(function () use ($user, $data): void {
+            $user->forceFill([
+                'preferred_language' => $data['language'],
+            ])->save();
+
+            if ($user->role === 'desarrollador') {
+                DB::update(
+                    'UPDATE "Portafolio"
+                     SET idioma_principal = ?, fecha_actualizacion = ?
+                     WHERE id_usuario = (
+                         SELECT id_usuario FROM "Usuario" WHERE correo = ? LIMIT 1
+                     )',
+                    [$data['language'], now(), $user->email]
+                );
+            }
+        });
+
+        return response()->json([
+            'message' => 'Idioma actualizado correctamente.',
+            'language' => $data['language'],
+        ]);
+    }
+
     /**
      * @return array<string, int|string|null>
      */
@@ -128,6 +161,7 @@ class AuthController extends Controller
             'role' => $user->role,
             'avatar' => $user->avatar,
             'provider' => $user->provider,
+            'preferred_language' => $user->preferred_language ?: 'es',
         ];
     }
 

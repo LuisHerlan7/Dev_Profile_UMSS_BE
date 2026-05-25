@@ -155,10 +155,13 @@ class DeveloperDashboardController extends Controller
             return $p;
         }, $proyectos);
 
-        if ($usuario && !empty($usuario->fotografia)) {
-            $ts = $usuario->fecha_actualizacion ? strtotime($usuario->fecha_actualizacion) : time();
-            $usuario->fotografiaUrl = '/api/developer/files/avatar/' . $usuario->id_usuario . '?t=' . $ts;
-            $usuario->fotografia = null; // Don't send huge base64 bytea in generic dash object
+        if ($usuario) {
+            if (! empty($usuario->fotografia)) {
+                $ts = $usuario->fecha_actualizacion ? strtotime($usuario->fecha_actualizacion) : time();
+                $usuario->fotografiaUrl = '/api/developer/files/avatar/' . $usuario->id_usuario . '?t=' . $ts;
+            }
+
+            $usuario->fotografia = null; // Never expose raw bytea in JSON responses.
         }
 
         return response()->json([
@@ -167,6 +170,7 @@ class DeveloperDashboardController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role,
+                'preferred_language' => $user->preferred_language ?: 'es',
             ],
             'usuario' => $usuario,
             'portafolio' => $portafolio,

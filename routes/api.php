@@ -20,6 +20,7 @@ Route::prefix('auth')->group(function (): void {
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/dashboard', [AuthController::class, 'dashboard']);
         Route::get('/me', [AuthController::class, 'me']);
+        Route::post('/language', [AuthController::class, 'updateLanguage']);
         Route::post('/logout', [AuthController::class, 'logout']);
     });
 });
@@ -45,6 +46,9 @@ Route::middleware('auth:sanctum')->prefix('developer')->group(function (): void 
     Route::post('/settings/verify-password', [\App\Http\Controllers\DeveloperSettingsController::class, 'verifyPassword']);
     Route::post('/settings/highlights', [\App\Http\Controllers\DeveloperSettingsController::class, 'syncHighlights']);
     Route::post('/settings/visibility', [\App\Http\Controllers\DeveloperSettingsController::class, 'updateVisibility']);
+    Route::post('/settings/language', [\App\Http\Controllers\DeveloperSettingsController::class, 'updateLanguage']);
+
+    Route::post('/reports', [\App\Http\Controllers\DeveloperReportController::class, 'store']);
 
     Route::post('/proyecto', [\App\Http\Controllers\ProyectoController::class, 'store']);
     Route::get('/proyecto/{id}', [\App\Http\Controllers\ProyectoController::class, 'show']);

@@ -27,6 +27,7 @@ class User extends Authenticatable
         'provider',
         'provider_id',
         'avatar',
+        'preferred_language',
     ];
 
     /**

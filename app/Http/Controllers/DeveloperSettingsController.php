@@ -45,8 +45,8 @@ class DeveloperSettingsController extends Controller
         }
 
         DB::update(
-            'UPDATE "Usuario" SET fotografia = ?, fecha_actualizacion = ? WHERE id_usuario = ?',
-            [file_get_contents($file->getRealPath()), now(), $idUsuario]
+            'UPDATE "Usuario" SET fotografia = decode(?, \'hex\'), fecha_actualizacion = ? WHERE id_usuario = ?',
+            [bin2hex(file_get_contents($file->getRealPath())), now(), $idUsuario]
         );
 
         return response()->json([
@@ -357,6 +357,35 @@ class DeveloperSettingsController extends Controller
 
         return response()->json([
             'message' => 'Configuración de visibilidad actualizada correctamente.',
+        ]);
+    }
+
+    public function updateLanguage(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        $idUsuario = $this->resolveDeveloperId($request);
+
+        $data = $request->validate([
+            'language' => ['required', 'in:es,en'],
+        ]);
+
+        DB::transaction(function () use ($user, $idUsuario, $data): void {
+            $user->forceFill([
+                'preferred_language' => $data['language'],
+            ])->save();
+
+            DB::update(
+                'UPDATE "Portafolio"
+                 SET idioma_principal = ?, fecha_actualizacion = ?
+                 WHERE id_usuario = ?',
+                [$data['language'], now(), $idUsuario]
+            );
+        });
+
+        return response()->json([
+            'message' => 'Idioma actualizado correctamente.',
+            'language' => $data['language'],
         ]);
     }
 
