@@ -45,8 +45,8 @@ class DeveloperSettingsController extends Controller
         }
 
         DB::update(
-            'UPDATE "Usuario" SET fotografia = ?, fecha_actualizacion = ? WHERE id_usuario = ?',
-            [file_get_contents($file->getRealPath()), now(), $idUsuario]
+            'UPDATE "Usuario" SET fotografia = decode(?, \'hex\'), fecha_actualizacion = ? WHERE id_usuario = ?',
+            [bin2hex(file_get_contents($file->getRealPath())), now(), $idUsuario]
         );
 
         return response()->json([
