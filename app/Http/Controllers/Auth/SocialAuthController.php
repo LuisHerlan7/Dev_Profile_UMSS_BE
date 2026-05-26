@@ -20,15 +20,22 @@ class SocialAuthController extends Controller
 
     public function callback(string $provider): JsonResponse|RedirectResponse
     {
-        $socialUser = Socialite::driver($provider)->stateless()->user();
+        if (request()->has('error') || !request()->has('code')) {
+            $errorDescription = request()->get('error_description') ?: request()->get('error') ?: 'Inicio de sesión cancelado por el usuario.';
+            return $this->redirectToFrontendWithError($errorDescription);
+        }
+
+        try {
+            $socialUser = Socialite::driver($provider)->stateless()->user();
+        } catch (\Exception $e) {
+            return $this->redirectToFrontendWithError('No se pudo obtener el usuario del proveedor social.');
+        }
 
         $email = $socialUser->getEmail();
         $providerId = (string) $socialUser->getId();
 
         if (! $email) {
-            return response()->json([
-                'message' => 'No se pudo obtener el correo del proveedor social.',
-            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->redirectToFrontendWithError('No se pudo obtener el correo de tu cuenta social.');
         }
 
         /** @var User $user */
@@ -63,8 +70,16 @@ class SocialAuthController extends Controller
         $this->ensureCvProfile($user);
 
         $token = $user->createToken($provider.'_oauth_token')->plainTextToken;
-        $frontendUrl = rtrim((string) config('app.frontend_url', env('FRONTEND_URL', 'http://localhost:5173')), '/');
+        $frontendUrl = rtrim((string) config('app.frontend_url', env('FRONTEND_URL', 'http://localhost:4200')), '/');
         $redirectUrl = $frontendUrl.'/auth/callback?token='.urlencode($token);
+
+        return redirect()->away($redirectUrl);
+    }
+
+    private function redirectToFrontendWithError(string $errorMessage): RedirectResponse
+    {
+        $frontendUrl = rtrim((string) config('app.frontend_url', env('FRONTEND_URL', 'http://localhost:4200')), '/');
+        $redirectUrl = $frontendUrl.'/login?error='.urlencode($errorMessage);
 
         return redirect()->away($redirectUrl);
     }
