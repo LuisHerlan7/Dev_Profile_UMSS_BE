@@ -63,7 +63,7 @@ class SocialAuthController extends Controller
         $this->ensureCvProfile($user);
 
         $token = $user->createToken($provider.'_oauth_token')->plainTextToken;
-        $frontendUrl = rtrim((string) config('app.frontend_url', env('FRONTEND_URL', 'http://localhost:5173')), '/');
+        $frontendUrl = rtrim((string) env('FRONTEND_URL', 'http://localhost:4200'), '/');
         $redirectUrl = $frontendUrl.'/auth/callback?token='.urlencode($token);
 
         return redirect()->away($redirectUrl);

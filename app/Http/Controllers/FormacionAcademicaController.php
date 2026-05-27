@@ -32,7 +32,7 @@ class FormacionAcademicaController extends Controller
                 archivo_evidencia,
                 nombre_archivo_evidencia,
                 mime_tipo_evidencia
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, decode(?, \'base64\'), ?, ?)
             RETURNING id_formacion',
             [
                 $idUsuario,
@@ -82,7 +82,7 @@ class FormacionAcademicaController extends Controller
                  actualmente_estudiante = ?,
                  descripcion = ?,
                  visibilidad = ?,
-                 archivo_evidencia = COALESCE(?, archivo_evidencia),
+                 archivo_evidencia = COALESCE(decode(?, \'base64\'), archivo_evidencia),
                  nombre_archivo_evidencia = COALESCE(?, nombre_archivo_evidencia),
                  mime_tipo_evidencia = COALESCE(?, mime_tipo_evidencia)
              WHERE id_formacion = ? AND id_usuario = ?',
@@ -95,7 +95,7 @@ class FormacionAcademicaController extends Controller
                 (bool) ($data['actualmente_estudiante'] ?? false),
                 $data['descripcion'] ?? null,
                 $data['visibilidad'] ?? 'publico',
-                $file ? file_get_contents($file->getRealPath()) : null,
+                $file ? base64_encode(file_get_contents($file->getRealPath())) : null,
                 $file?->getClientOriginalName(),
                 $file?->getClientMimeType(),
                 $id,
@@ -151,6 +151,6 @@ class FormacionAcademicaController extends Controller
     {
         $file = $request->file($key);
 
-        return $file ? file_get_contents($file->getRealPath()) : null;
+        return $file ? base64_encode(file_get_contents($file->getRealPath())) : null;
     }
 }
