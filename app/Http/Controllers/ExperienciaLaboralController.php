@@ -31,7 +31,7 @@ class ExperienciaLaboralController extends Controller
                 archivo_evidencia,
                 nombre_archivo_evidencia,
                 mime_tipo_evidencia
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, decode(?, \'base64\'), ?, ?)
             RETURNING id_experiencia',
             [
                 $data['titulo_puesto'],
@@ -51,7 +51,7 @@ class ExperienciaLaboralController extends Controller
         return response()->json([
             'message' => 'Experiencia guardada correctamente.',
             'id' => $inserted->id_experiencia,
-        ], 201);
+        ], 201, [], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
     }
 
     public function update(Request $request, int $id): JsonResponse
@@ -79,7 +79,7 @@ class ExperienciaLaboralController extends Controller
                  fecha_fin = ?,
                  es_trabajo_actual = ?,
                  visibilidad = ?,
-                 archivo_evidencia = COALESCE(?, archivo_evidencia),
+                 archivo_evidencia = COALESCE(decode(?, \'base64\'), archivo_evidencia),
                  nombre_archivo_evidencia = COALESCE(?, nombre_archivo_evidencia),
                  mime_tipo_evidencia = COALESCE(?, mime_tipo_evidencia)
              WHERE id_experiencia = ? AND id_usuario = ?',
@@ -91,7 +91,7 @@ class ExperienciaLaboralController extends Controller
                 $data['fecha_fin'] ?? null,
                 (bool) ($data['es_trabajo_actual'] ?? false),
                 $data['visibilidad'] ?? 'publico',
-                $file ? file_get_contents($file->getRealPath()) : null,
+                $file ? base64_encode(file_get_contents($file->getRealPath())) : null,
                 $file?->getClientOriginalName(),
                 $file?->getClientMimeType(),
                 $id,
@@ -102,7 +102,7 @@ class ExperienciaLaboralController extends Controller
         return response()->json([
             'message' => 'Experiencia actualizada correctamente.',
             'id' => $id,
-        ]);
+        ], 200, [], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
     }
 
     public function destroy(Request $request, int $id): JsonResponse
@@ -115,7 +115,7 @@ class ExperienciaLaboralController extends Controller
 
         return response()->json([
             'message' => 'Experiencia eliminada correctamente.',
-        ]);
+        ], 200, [], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
     }
 
     private function validatePayload(Request $request): array
@@ -146,6 +146,6 @@ class ExperienciaLaboralController extends Controller
     {
         $file = $request->file($key);
 
-        return $file ? file_get_contents($file->getRealPath()) : null;
+        return $file ? base64_encode(file_get_contents($file->getRealPath())) : null;
     }
 }

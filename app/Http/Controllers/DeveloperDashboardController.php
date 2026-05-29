@@ -28,7 +28,13 @@ class DeveloperDashboardController extends Controller
 
         $idUsuario = $this->generadorUsuarioSync->ensureForLaravelUser($user);
 
-        $usuario = DB::selectOne('SELECT * FROM "Usuario" WHERE id_usuario = ?', [$idUsuario]);
+        $usuario = DB::selectOne(
+            'SELECT id_usuario, nombre_completo, correo, correo_contacto, telefono, profesion, biografia, visibilidad_perfil, fecha_creacion, fecha_actualizacion,
+                    titulos_jerarquia_json, roles_jerarquia_json,
+                    CASE WHEN fotografia IS NOT NULL THEN true ELSE false END AS tiene_fotografia
+             FROM "Usuario" WHERE id_usuario = ?',
+            [$idUsuario]
+        );
 
         $portafolio = DB::selectOne(
             'SELECT * FROM "Portafolio" WHERE id_usuario = ?',
@@ -76,29 +82,26 @@ class DeveloperDashboardController extends Controller
         );
 
         $experiencias = DB::select(
-            'SELECT * FROM "Experiencia_Laboral" WHERE id_usuario = ? ORDER BY fecha_inicio DESC NULLS LAST',
+            'SELECT id_experiencia, titulo_puesto, id_usuario, nombre_empresa, descripcion_puesto, fecha_inicio, fecha_fin, es_trabajo_actual, visibilidad, nombre_archivo_evidencia, mime_tipo_evidencia FROM "Experiencia_Laboral" WHERE id_usuario = ? ORDER BY fecha_inicio DESC NULLS LAST',
             [$idUsuario]
         );
 
         $formaciones = DB::select(
-            'SELECT * FROM "Formacion_Academica" WHERE id_usuario = ? ORDER BY fecha_inicio DESC NULLS LAST',
+            'SELECT id_formacion, id_usuario, institucion, nivel_estudio, carrera_especialidad, fecha_inicio, fecha_fin, actualmente_estudiante, descripcion, visibilidad, nombre_archivo_evidencia, mime_tipo_evidencia FROM "Formacion_Academica" WHERE id_usuario = ? ORDER BY fecha_inicio DESC NULLS LAST',
             [$idUsuario]
         );
 
         foreach ($experiencias as $exp) {
-            if ($exp->archivo_evidencia != null) {
-                // Not returning the whole bytea to dashboard, just the URL
+            if (!empty($exp->nombre_archivo_evidencia)) {
                 $exp->evidenceUrl = '/api/developer/files/experiencia/' . $exp->id_experiencia;
                 $exp->fileSize = $exp->nombre_archivo_evidencia;
-                $exp->archivo_evidencia = null; // Clean up payload
             }
         }
 
         foreach ($formaciones as $form) {
-            if ($form->archivo_evidencia != null) {
+            if (!empty($form->nombre_archivo_evidencia)) {
                 $form->evidenceUrl = '/api/developer/files/formacion/' . $form->id_formacion;
                 $form->fileSize = $form->nombre_archivo_evidencia;
-                $form->archivo_evidencia = null; // Clean up payload
             }
         }
 
@@ -156,12 +159,10 @@ class DeveloperDashboardController extends Controller
         }, $proyectos);
 
         if ($usuario) {
-            if (! empty($usuario->fotografia)) {
+            if ($usuario->tiene_fotografia ?? false) {
                 $ts = $usuario->fecha_actualizacion ? strtotime($usuario->fecha_actualizacion) : time();
                 $usuario->fotografiaUrl = '/api/developer/files/avatar/' . $usuario->id_usuario . '?t=' . $ts;
             }
-
-            $usuario->fotografia = null; // Never expose raw bytea in JSON responses.
         }
 
         return response()->json([
@@ -181,6 +182,6 @@ class DeveloperDashboardController extends Controller
             'visibilidad' => $visibilidad,
             'redes' => $redes,
             'evidences' => $evidenciasMapeadas,
-        ]);
+        ], 200, [], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
     }
 }
