@@ -209,10 +209,10 @@ class DatabaseSeeder extends Seeder
     private function seedSecurityEvents(int $usuarioId): void
     {
         $events = [
-            ['title' => 'Inicio de Sesion', 'desc' => 'Acceso satisfactorio desde IP 192.168.1.10'],
-            ['title' => 'Cambio de Contraseña', 'desc' => 'El usuario actualizo sus credenciales.'],
-            ['title' => 'Edicion de Perfil Sensible', 'desc' => 'Actualizacion de datos personales.'],
-            ['title' => 'Intento Fallido', 'desc' => 'Multiples intentos fallidos detectados.'],
+            ['title' => 'Registro de actividad', 'desc' => 'Actividad administrativa registrada por el sistema.'],
+            ['title' => 'Actualizacion de perfil', 'desc' => 'El usuario actualizo informacion de su cuenta.'],
+            ['title' => 'Revision de contenido', 'desc' => 'Contenido evaluable fue revisado desde el panel administrativo.'],
+            ['title' => 'Cambio de configuracion', 'desc' => 'Se actualizo una preferencia del sistema.'],
         ];
 
         foreach ($events as $offset => $event) {
