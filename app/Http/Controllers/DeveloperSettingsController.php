@@ -25,7 +25,8 @@ class DeveloperSettingsController extends Controller
             'remove_avatar' => ['nullable', 'boolean'],
         ]);
 
-        if (($data['remove_avatar'] ?? false) === true) {
+        $removeAvatar = $data['remove_avatar'] ?? false;
+        if ($removeAvatar === true || $removeAvatar === '1' || $removeAvatar === 'true') {
             DB::update(
                 'UPDATE "Usuario" SET fotografia = NULL, fecha_actualizacion = ? WHERE id_usuario = ?',
                 [now(), $idUsuario]
