@@ -1,36 +1,53 @@
+## Dev Profile UMSS — Backend
+
+INTRODUCCIÓN
+
+Dev Profile UMSS es una plataforma web diseñada para la creación, administración y publicación de portafolios profesionales digitales. El backend expone una API REST construida en Laravel 11 (PHP 8.2) y está optimizada para integrarse con una SPA en React que provee la capa de presentación. El sistema centraliza información curricular, proyectos, evidencias y permisos de visibilidad, y soporta generación de reportes en cliente mediante el frontend.
+
+OBJETIVO GENERAL
+
+Proveer una API segura, escalable y mantenible que permita la gestión completa de perfiles profesionales, autorización por roles (Visitante, Desarrollador, Administrador), persistencia relacional robusta y endpoints de soporte para la exportación y administración de evidencias.
+
+OBJETIVOS ESPECÍFICOS
+
+- Implementar control de accesos y autenticación segura (tokens / Sanctum).
+- Exponer endpoints claros y versionados para CRUD de perfiles, proyectos y evidencias.
+- Mantener la configuración multi-driver en `config/database.php` con preferencia por PostgreSQL en producción.
+- Proveer migraciones y seeders para facilitar entornos de prueba reproducibles.
+
+ALCANCE
+
+Este repositorio contiene únicamente la capa de servicios (API). No incluye el cliente (frontend), aunque está diseñado para interoperar con la aplicación React del proyecto.
+
 ## Inicio rápido (equipo UMSS)
 
-### Stack obligatorio
-- **PHP 8.2**
-- **Laravel 11**
-- **PostgreSQL 15.10**
+### Resumen
+Este repositorio contiene el backend del proyecto desarrollado con Laravel 11 y PHP 8.2. El entorno local está configurado para ejecutarse con PostgreSQL, y no es necesario instalar MySQL/MariaDB para ejecutar la aplicación en local.
 
-### Requisitos
-- Composer instalado.
-- PostgreSQL en ejecución.
+### Requisitos previos
+- PHP 8.2
+- Composer
+- PostgreSQL en ejecución
+- Extensiones PHP recomendadas por Laravel: `pdo`, `pdo_pgsql`, `mbstring`, `openssl`, `tokenizer`, `xml`, `ctype`, `json`, `fileinfo`
 
 ### Configuración local (paso a paso)
 1. Instalar dependencias:
-```bash
+```powershell
 composer install
 ```
 
-2. Crear `.env` local:
-```bash
-cp .env.example .env
-```
-En Windows (PowerShell):
+2. Crear el archivo `.env` local:
 ```powershell
 Copy-Item .env.example .env
 ```
 
-3. Generar la key:
-```bash
+3. Generar la clave de la aplicación:
+```powershell
 php artisan key:generate
 ```
 
-4. Ajustar variables clave en `.env`:
-```
+4. Ajustar los valores de base de datos en `.env`:
+```env
 APP_URL=http://127.0.0.1:9200
 SERVER_HOST=127.0.0.1
 SERVER_PORT=9200
@@ -40,37 +57,46 @@ DB_HOST=127.0.0.1
 DB_PORT=5432
 DB_DATABASE=dev_profile_umss
 DB_USERNAME=postgres
-DB_PASSWORD=aquivatucontraseñasupercomplicada
+DB_PASSWORD=
 
 FRONTEND_URL=http://127.0.0.1:4200
 SANCTUM_STATEFUL_DOMAINS=127.0.0.1:4200,localhost:4200,127.0.0.1:9200,localhost:9200
 ```
 
-5. Migraciones y seed:
-```bash
+5. Ejecutar migraciones y seed:
+```powershell
 php artisan migrate
 php artisan db:seed
 ```
 
-6. Storage link (para evidencias):
-```bash
+6. Crear el enlace de storage (necesario para archivos públicos):
+```powershell
 php artisan storage:link
 ```
 
-7. Levantar servidor:
-```bash
-php artisan serve
+### Iniciar el backend
+```powershell
+php artisan serve --host=127.0.0.1 --port=9200
 ```
-Queda en: `http://127.0.0.1:9200`
+
+El backend estará disponible en:
+
+`http://127.0.0.1:9200`
+
+Si prefieres usar el puerto estándar 8000:
+```powershell
+php artisan serve --host=127.0.0.1 --port=8000
+```
 
 ### Credenciales demo
-Admin (seed):
+Admin:
 - Email: `parche@gmail.com`
 - Password: `admin123`
 
 ### Troubleshooting rápido
-- Si el puerto 9200 está ocupado, cambia `SERVER_PORT` en `.env` o libera el proceso.
-- Si falla el seed, ejecuta nuevamente `php artisan db:seed` luego de actualizar el repo.
+- Si PostgreSQL no está disponible, revisa que el servicio esté corriendo y que el puerto `5432` sea accesible.
+- Si el puerto 9200 ya está ocupado, cambia `SERVER_PORT` en `.env` y reinicia el servidor.
+- Si `php artisan migrate` falla, verifica el archivo `.env` y que el usuario/contraseña de PostgreSQL sean correctos.
 
 
 ## Backend - Plataforma de Servicios
