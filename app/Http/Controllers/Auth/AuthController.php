@@ -15,9 +15,20 @@ class AuthController extends Controller
     public function register(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'name' => [
+                'required',
+                'string',
+                'max:50',
+                'unique:users,name',
+            ],
+            'email' => ['required', 'email', 'max:50', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8', 'max:50', 'confirmed'],
+        ], [
+            'name.unique' => 'Ya existe un usuario registrado con ese nombre. Por favor, elige otro nombre o agrega caracteres adicionales (ej: segundo apellido, inicial).',
+            'name.max' => 'El nombre no puede superar los 50 caracteres.',
+            'email.unique' => 'Ese correo ya está registrado.',
+            'email.max' => 'El correo no puede superar los 50 caracteres.',
+            'password.max' => 'La contraseña no puede superar los 50 caracteres.',
         ]);
 
         $user = User::create([
@@ -43,8 +54,8 @@ class AuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required', 'string', 'min:8'],
+            'email' => ['required', 'email', 'max:50'],
+            'password' => ['required', 'string', 'min:8', 'max:50'],
         ]);
 
         /** @var User|null $user */
