@@ -53,7 +53,7 @@ class User extends Authenticatable
     public static function validationRules(): array
     {
         return [
-            'name' => 'required|string|max:255',
+            'name' => 'required|string|max:255|unique:users,name',
             'email' => 'required|string|email|max:255|unique:users,email',
             'password' => 'required|string|min:8|confirmed|regex:/^\S+$/',
         ];
@@ -63,6 +63,7 @@ class User extends Authenticatable
     {
         return [
             'name.required' => 'El nombre es obligatorio.',
+            'name.unique' => 'Ya existe un usuario registrado con ese nombre. Por favor, elige otro nombre o agrega caracteres adicionales (ej: segundo apellido, inicial).',
             'email.required' => 'El correo electrónico es obligatorio.',
             'email.email' => 'Debes ingresar un correo electrónico válido.',
             'email.regex' => 'El correo debe ser de gmail.com, hotmail.com u outlook.com.',
