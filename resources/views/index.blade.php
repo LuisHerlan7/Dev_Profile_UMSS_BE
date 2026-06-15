@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-    @viteReactRefresh
-    @vite(['resources/js/main.tsx'])
+    <title>Test</title>
 </head>
 <body>
-    <div id="root"></div>
+
+<h1>INDEX FUNCIONA</h1>
+
 </body>
 </html>
