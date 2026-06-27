@@ -39,6 +39,15 @@ class DeveloperReportController extends Controller
             ], 404);
         }
 
+        $missingRequirements = $this->missingPortfolioRequirements($idUsuario, (int) $portfolio->id_portafolio);
+
+        if ($missingRequirements !== []) {
+            return response()->json([
+                'message' => 'Completa los datos minimos del portafolio antes de exportarlo.',
+                'missing_requirements' => $missingRequirements,
+            ], 422);
+        }
+
         $report = DB::selectOne(
             'INSERT INTO "Reporte" (
                 id_portafolio,
@@ -67,5 +76,35 @@ class DeveloperReportController extends Controller
             'message' => 'Reporte generado correctamente.',
             'report' => $report,
         ]);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function missingPortfolioRequirements(int $idUsuario, int $idPortafolio): array
+    {
+        $missing = [];
+        $usuario = DB::table('Usuario')->where('id_usuario', $idUsuario)->first();
+
+        if (! $usuario || ! filled($usuario->biografia ?? null)) {
+            $missing[] = 'biografia';
+        }
+
+        if (DB::table('Proyecto')->where('id_portafolio', $idPortafolio)->count() === 0) {
+            $missing[] = 'proyectos';
+        }
+
+        if (DB::table('Habilidad')->where('id_usuario', $idUsuario)->count() === 0) {
+            $missing[] = 'habilidades';
+        }
+
+        $hasExperience = DB::table('Experiencia_Laboral')->where('id_usuario', $idUsuario)->exists();
+        $hasEducation = DB::table('Formacion_Academica')->where('id_usuario', $idUsuario)->exists();
+
+        if (! $hasExperience && ! $hasEducation) {
+            $missing[] = 'experiencia_o_formacion';
+        }
+
+        return $missing;
     }
 }
