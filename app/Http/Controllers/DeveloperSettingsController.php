@@ -118,7 +118,9 @@ class DeveloperSettingsController extends Controller
             'github' => ['nullable', 'url', 'max:255'],
             'linkedin' => ['nullable', 'url', 'max:255'],
             'website' => ['nullable', 'url', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:20', 'regex:/^[0-9+\\-()\\s]{7,20}$/'],
+            'phone' => ['nullable', 'string', 'regex:/^[0-9]{8}$/'],
+        ], [
+            'phone.regex' => 'El telefono debe contener exactamente 8 digitos numericos.',
         ]);
 
         $existingUser = DB::selectOne('SELECT telefono FROM "Usuario" WHERE id_usuario = ?', [$idUsuario]);
