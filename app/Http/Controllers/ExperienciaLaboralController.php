@@ -121,14 +121,25 @@ class ExperienciaLaboralController extends Controller
     private function validatePayload(Request $request): array
     {
         return $request->validate([
-            'titulo_puesto' => ['required', 'string', 'max:150'],
-            'nombre_empresa' => ['required', 'string', 'max:150'],
-            'descripcion_puesto' => ['nullable', 'string', 'max:3000'],
-            'fecha_inicio' => ['required', 'date'],
-            'fecha_fin' => ['nullable', 'date', 'after_or_equal:fecha_inicio'],
+            'titulo_puesto' => ['required', 'string', 'min:3', 'max:150', 'regex:/^(?=.*\pL)[\pL\pN\s.,&()\'\/-]+$/u'],
+            'nombre_empresa' => ['required', 'string', 'min:2', 'max:150', 'regex:/^(?=.*\pL)[\pL\pN\s.,&()\'\/-]+$/u'],
+            'descripcion_puesto' => ['nullable', 'string', 'min:20', 'max:3000', 'regex:/^(?=.*\pL).+$/su'],
+            'fecha_inicio' => ['required', 'date', 'after_or_equal:1950-01-01', 'before_or_equal:today'],
+            'fecha_fin' => ['nullable', 'date', 'after_or_equal:fecha_inicio', 'before_or_equal:today'],
             'es_trabajo_actual' => ['nullable', 'boolean'],
             'visibilidad' => ['nullable', 'in:publico,privado'],
             'archivo' => ['nullable', 'file', 'mimes:pdf,png,jpg,jpeg', 'max:5120'],
+        ], [
+            'titulo_puesto.min' => 'El cargo debe tener al menos 3 caracteres.',
+            'titulo_puesto.regex' => 'El cargo debe contener letras y no puede estar formado solo por simbolos o numeros.',
+            'nombre_empresa.min' => 'El nombre de la empresa debe tener al menos 2 caracteres.',
+            'nombre_empresa.regex' => 'La empresa debe contener letras y no puede estar formada solo por simbolos o numeros.',
+            'descripcion_puesto.min' => 'La descripcion debe tener al menos 20 caracteres.',
+            'descripcion_puesto.regex' => 'La descripcion debe contener texto valido.',
+            'fecha_inicio.after_or_equal' => 'La fecha de inicio no puede ser anterior a 1950.',
+            'fecha_inicio.before_or_equal' => 'La fecha de inicio no puede estar en el futuro.',
+            'fecha_fin.after_or_equal' => 'La fecha de fin no puede ser anterior a la fecha de inicio.',
+            'fecha_fin.before_or_equal' => 'La fecha de fin no puede estar en el futuro.',
         ]);
     }
 
