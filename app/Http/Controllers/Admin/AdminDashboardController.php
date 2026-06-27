@@ -154,9 +154,11 @@ class AdminDashboardController extends Controller
         }
 
         $payload = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', 'regex:/^(?=.*\pL)[\pL\s]+$/u'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'regex:/^\S+$/'],
+        ], [
+            'name.regex' => 'El nombre solo puede contener letras y espacios.',
         ]);
 
         $admin = User::create([

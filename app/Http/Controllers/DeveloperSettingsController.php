@@ -61,9 +61,9 @@ class DeveloperSettingsController extends Controller
         $idUsuario = $this->resolveDeveloperId($request);
 
         $data = $request->validate([
-            'firstName' => ['required', 'string', 'max:80'],
-            'lastName' => ['nullable', 'string', 'max:80'],
-            'maternalLastName' => ['nullable', 'string', 'max:120'],
+            'firstName' => ['required', 'string', 'max:80', 'regex:/^(?=.*\pL)[\pL\s]+$/u'],
+            'lastName' => ['nullable', 'string', 'max:80', 'regex:/^(?=.*\pL)[\pL\s]+$/u'],
+            'maternalLastName' => ['nullable', 'string', 'max:120', 'regex:/^(?=.*\pL)[\pL\s]+$/u'],
             'role' => ['nullable', 'string', 'max:120'],
             'bio' => ['nullable', 'string', 'max:3000'],
             'contactEmail' => ['nullable', 'email', 'max:100'],
@@ -71,6 +71,10 @@ class DeveloperSettingsController extends Controller
             'titleHierarchy.*' => ['required', 'string', 'max:120'],
             'roleHierarchy' => ['nullable', 'array'],
             'roleHierarchy.*' => ['required', 'string', 'max:120'],
+        ], [
+            'firstName.regex' => 'El nombre solo puede contener letras y espacios.',
+            'lastName.regex' => 'El apellido solo puede contener letras y espacios.',
+            'maternalLastName.regex' => 'El apellido materno solo puede contener letras y espacios.',
         ]);
 
         $fullName = collect([

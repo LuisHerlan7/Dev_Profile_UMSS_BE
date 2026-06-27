@@ -19,6 +19,7 @@ class AuthController extends Controller
                 'required',
                 'string',
                 'max:50',
+                'regex:/^(?=.*\pL)[\pL\s]+$/u',
                 'unique:users,name',
             ],
             'email' => ['required', 'email', 'max:50', 'unique:users,email'],
@@ -26,6 +27,7 @@ class AuthController extends Controller
         ], [
             'name.unique' => 'Ya existe un usuario registrado con ese nombre. Por favor, elige otro nombre o agrega caracteres adicionales (ej: segundo apellido, inicial).',
             'name.max' => 'El nombre no puede superar los 50 caracteres.',
+            'name.regex' => 'El nombre solo puede contener letras y espacios.',
             'email.unique' => 'Ese correo ya está registrado.',
             'email.max' => 'El correo no puede superar los 50 caracteres.',
             'password.max' => 'La contraseña no puede superar los 50 caracteres.',
