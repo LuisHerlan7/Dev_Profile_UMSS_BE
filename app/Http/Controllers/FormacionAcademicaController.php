@@ -125,13 +125,13 @@ class FormacionAcademicaController extends Controller
     private function validatePayload(Request $request): array
     {
         return $request->validate([
-            'institucion' => ['required', 'string', 'max:150'],
+            'institucion' => ['required', 'string', 'max:150', 'regex:/^(?=.*\pL)[\pL\pN\s.,&()\'\/-]+$/u'],
             'nivel_estudio' => ['nullable', 'in:secundaria,diploma,licenciatura,maestria,doctorado,curso,certificado'],
-            'carrera_especialidad' => ['required', 'string', 'max:150'],
+            'carrera_especialidad' => ['required', 'string', 'max:150', 'regex:/^(?=.*\pL)[\pL\pN\s.,&()\'\/-]+$/u'],
             'fecha_inicio' => ['required', 'date'],
             'fecha_fin' => ['nullable', 'date', 'after_or_equal:fecha_inicio'],
             'actualmente_estudiante' => ['nullable', 'boolean'],
-            'descripcion' => ['nullable', 'string', 'max:3000'],
+            'descripcion' => ['nullable', 'string', 'max:3000', 'regex:/^(?=.*\pL)[\pL\pN\s.,:;()\/%\-]+$/u'],
             'visibilidad' => ['nullable', 'in:publico,privado'],
             'archivo' => ['nullable', 'file', 'mimes:pdf,png,jpg,jpeg', 'max:5120'],
         ]);

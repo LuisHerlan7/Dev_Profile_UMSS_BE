@@ -123,7 +123,7 @@ class ExperienciaLaboralController extends Controller
         return $request->validate([
             'titulo_puesto' => ['required', 'string', 'min:3', 'max:150', 'regex:/^(?=.*\pL)[\pL\pN\s.,&()\'\/-]+$/u'],
             'nombre_empresa' => ['required', 'string', 'min:2', 'max:150', 'regex:/^(?=.*\pL)[\pL\pN\s.,&()\'\/-]+$/u'],
-            'descripcion_puesto' => ['nullable', 'string', 'min:20', 'max:3000', 'regex:/^(?=.*\pL)[\pL\pN\s.,&()\'\/-]+$/u'],
+            'descripcion_puesto' => ['nullable', 'string', 'min:20', 'max:3000', 'regex:/^(?=.*\pL)[\pL\pN\s.,:;()\/%\-]+$/u'],
             'fecha_inicio' => ['required', 'date', 'after_or_equal:1950-01-01', 'before_or_equal:today'],
             'fecha_fin' => ['nullable', 'date', 'after_or_equal:fecha_inicio', 'before_or_equal:today'],
             'es_trabajo_actual' => ['nullable', 'boolean'],
