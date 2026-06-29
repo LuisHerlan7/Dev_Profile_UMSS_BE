@@ -165,6 +165,7 @@ class DatabaseSeeder extends Seeder
         }
 
         $this->seedSecurityEvents($developerUsuarioId);
+        $this->call(DevelopersSeeder::class);
     }
 
     private function ensureUsuarioProfile(User $user): int
