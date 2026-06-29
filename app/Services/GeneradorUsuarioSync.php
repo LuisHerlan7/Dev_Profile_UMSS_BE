@@ -14,7 +14,6 @@ class GeneradorUsuarioSync
         if ($existing) {
             return (int) $existing->id_usuario;
         }
-
         return (int) DB::table('Usuario')->insertGetId([
             'nombre_completo' => $user->name,
             'correo' => $user->email,
@@ -22,6 +21,7 @@ class GeneradorUsuarioSync
             'contraseña_hash' => (string) ($user->password ?? ''),
             'estado_perfil' => 'activo',
             'visibilidad_perfil' => 'publico',
+            'nivel_experiencia' => 'junior',
             'fecha_creacion' => now(),
             'fecha_actualizacion' => now(),
         ], 'id_usuario');

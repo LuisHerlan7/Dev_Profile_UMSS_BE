@@ -82,14 +82,33 @@ class FileDownloadController extends Controller
     public function downloadEvidencia(int $id): Response
     {
         $row = DB::selectOne('
-            SELECT archivo, tipo_mime, nombre_archivo
+            SELECT archivo, tipo_mime, nombre_archivo, url_enlace
             FROM "Evidencia_Digital"
             WHERE id_evidencia = ?
             LIMIT 1
         ', [$id]);
 
-        if (! $row || empty($row->archivo)) {
-            abort(404, 'Archivo no encontrado');
+        if (! $row) {
+            abort(404, 'Evidencia no encontrada');
+        }
+
+        if (empty($row->archivo)) {
+            if (!empty($row->url_enlace)) {
+                $parsedUrl = parse_url($row->url_enlace);
+                $path = $parsedUrl['path'] ?? '';
+                if (str_contains($path, '/storage/')) {
+                    $storagePath = str_replace('/storage/', 'public/', $path);
+                    if (\Illuminate\Support\Facades\Storage::disk('local')->exists($storagePath)) {
+                        $binary = \Illuminate\Support\Facades\Storage::disk('local')->get($storagePath);
+                        return $this->binaryResponse(
+                            $binary,
+                            (string) ($row->tipo_mime ?? 'application/octet-stream'),
+                            (string) ($row->nombre_archivo ?? ('evidencia-' . $id))
+                        );
+                    }
+                }
+            }
+            abort(404, 'El archivo físico de la evidencia no se encuentra disponible.');
         }
 
         return $this->binaryResponse(

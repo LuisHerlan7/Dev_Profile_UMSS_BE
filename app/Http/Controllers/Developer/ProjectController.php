@@ -217,6 +217,7 @@ class ProjectController extends Controller
                 'fecha_carga' => now(),
                 'visibilidad' => 'publico',
                 'estado_revision' => 'en_revision',
+                'archivo' => '\x' . bin2hex(file_get_contents($file->getRealPath())),
             ], 'id_evidencia');
 
             $payload[] = [

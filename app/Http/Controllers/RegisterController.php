@@ -39,8 +39,9 @@ class RegisterController extends Controller
                 'contraseña_hash' => $hashedPassword,
                 'estado_perfil' => 'activo',
                 'visibilidad_perfil' => 'publico',
-                'created_at' => now(),
-                'updated_at' => now(),
+                'nivel_experiencia' => 'junior',
+                'fecha_creacion' => now(),
+                'fecha_actualizacion' => now(),
             ]);
         }
 
