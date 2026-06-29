@@ -16,6 +16,7 @@ class PublicProfileController extends Controller
                    u.profesion,
                    u.nivel_experiencia,
                    u.fecha_actualizacion,
+                   u.roles_jerarquia_json,
                    COALESCE(cv.mostrar_habilidades, TRUE) AS mostrar_habilidades
             FROM "Usuario" u
             INNER JOIN users ur ON ur.email = u.correo
@@ -40,12 +41,20 @@ class PublicProfileController extends Controller
             $ts = $u->fecha_actualizacion ? strtotime($u->fecha_actualizacion) : time();
             $avatarUrl = "/api/developer/files/avatar/{$u->id_usuario}?t={$ts}";
 
+            $roles = [];
+            if (!empty($u->roles_jerarquia_json)) {
+                $decoded = json_decode($u->roles_jerarquia_json, true);
+                if (is_array($decoded)) {
+                    $roles = array_values(array_filter(array_map('trim', $decoded)));
+                }
+            }
             $result[] = [
                 'id' => $u->id_usuario,
                 'name' => $u->nombre_completo,
                 'title' => $u->profesion ?? 'Desarrollador',
                 'experienceLevel' => $this->normalizeExperienceLevel($u->nivel_experiencia ?? null),
-                'type' => 'Full Stack',
+                'type' => $u->profesion ?? 'Desarrollador',
+                'roles' => $roles,
                 'tags' => array_map(fn($h) => $h->nombre_habilidad, $habilidades),
                 'avatarUrl' => $avatarUrl
             ];
@@ -440,6 +449,29 @@ class PublicProfileController extends Controller
         }
 
         return $normalized;
+    }
+
+    private function resolveDeveloperType(?string $profesion): string
+    {
+        if (empty($profesion)) {
+            return 'Full Stack';
+        }
+
+        $profesionLower = mb_strtolower(trim($profesion), 'UTF-8');
+
+        if (str_contains($profesionLower, 'frontend') || str_contains($profesionLower, 'front-end') || str_contains($profesionLower, 'front end')) {
+            return 'Frontend';
+        }
+
+        if (str_contains($profesionLower, 'backend') || str_contains($profesionLower, 'back-end') || str_contains($profesionLower, 'back end')) {
+            return 'Backend';
+        }
+
+        if (str_contains($profesionLower, 'data') || str_contains($profesionLower, 'datos') || str_contains($profesionLower, 'analyst') || str_contains($profesionLower, 'científico') || str_contains($profesionLower, 'ciencia') || str_contains($profesionLower, 'big data') || str_contains($profesionLower, 'analytics')) {
+            return 'Data';
+        }
+
+        return 'Full Stack';
     }
 
     private function normalizeExperienceLevel(?string $level): string
