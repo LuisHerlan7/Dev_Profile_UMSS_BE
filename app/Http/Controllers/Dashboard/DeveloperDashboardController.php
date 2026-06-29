@@ -26,6 +26,7 @@ class DeveloperDashboardController extends Controller
 
         $usuario = DB::table('Usuario')->where('correo', $user->email)->first();
         $usuarioId = $usuario?->id_usuario;
+        $experienceLevel = $usuario?->nivel_experiencia ?? 'junior';
 
         $portafolio = $usuarioId
             ? DB::table('Portafolio')->where('id_usuario', $usuarioId)->first()
@@ -123,7 +124,9 @@ class DeveloperDashboardController extends Controller
             'profile' => [
                 'completion' => $profileCompletion,
                 'next_step' => $this->resolveNextStep($usuario, $projectCount, $skillsCount, $experienceEntries),
+                'experience_level' => $experienceLevel,
             ],
+            'usuario' => $usuario,
             'recent_projects' => $recentProjectsPayload,
             'projects' => $projectsPayload,
             'evidences' => $evidencesPayload,

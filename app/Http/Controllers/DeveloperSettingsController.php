@@ -67,6 +67,7 @@ class DeveloperSettingsController extends Controller
             'role' => ['nullable', 'string', 'max:120'],
             'bio' => ['nullable', 'string', 'max:3000'],
             'contactEmail' => ['nullable', 'email', 'max:100'],
+            'experienceLevel' => ['nullable', 'in:senior,semi-senior,junior'],
             'titleHierarchy' => ['nullable', 'array'],
             'titleHierarchy.*' => ['required', 'string', 'max:120'],
             'roleHierarchy' => ['nullable', 'array'],
@@ -77,11 +78,16 @@ class DeveloperSettingsController extends Controller
             'maternalLastName.regex' => 'El apellido materno solo puede contener letras y espacios.',
         ]);
 
+        \Log::debug('[DEBUG] updateProfile recibido:', $data);
+        \Log::debug('[DEBUG] experienceLevel recibido:', ['experienceLevel' => $data['experienceLevel'] ?? 'NULL']);
+
         $fullName = collect([
             $data['firstName'],
             $data['lastName'] ?? null,
             $data['maternalLastName'] ?? null,
         ])->filter(fn ($value) => filled($value))->implode(' ');
+
+        \Log::debug('[DEBUG] Guardando nivel_experiencia:', ['level' => $data['experienceLevel'] ?? null]);
 
         DB::update(
             'UPDATE "Usuario"
@@ -89,6 +95,7 @@ class DeveloperSettingsController extends Controller
                  profesion = ?,
                  biografia = ?,
                  correo_contacto = ?,
+                 nivel_experiencia = ?,
                  titulos_jerarquia_json = ?,
                  roles_jerarquia_json = ?,
                  fecha_actualizacion = ?
@@ -98,6 +105,7 @@ class DeveloperSettingsController extends Controller
                 $data['role'] ?? null,
                 $data['bio'] ?? null,
                 $data['contactEmail'] ?? null,
+                $data['experienceLevel'] ?? null,
                 json_encode(array_values($data['titleHierarchy'] ?? []), JSON_UNESCAPED_UNICODE),
                 json_encode(array_values($data['roleHierarchy'] ?? []), JSON_UNESCAPED_UNICODE),
                 now(),
@@ -105,9 +113,26 @@ class DeveloperSettingsController extends Controller
             ]
         );
 
+        $updatedUser = DB::selectOne('SELECT * FROM "Usuario" WHERE id_usuario = ?', [$idUsuario]);
+
+        \Log::debug('[DEBUG] Usuario actualizado desde BD:', [
+            'id' => $updatedUser->id_usuario ?? null,
+            'nivel_experiencia' => $updatedUser->nivel_experiencia ?? null,
+        ]);
+
+        // Convertir a array para asegurar serialización correcta
+        $usuarioArray = $updatedUser ? (array)$updatedUser : ['id_usuario' => $idUsuario, 'nivel_experiencia' => $data['experienceLevel'] ?? null];
+        
+        \Log::debug('[DEBUG] Respuesta que enviaremos:', [
+            'usuario' => $usuarioArray,
+            'nivel_experiencia' => $usuarioArray['nivel_experiencia'] ?? null,
+        ]);
+
         return response()->json([
             'message' => 'Perfil actualizado correctamente.',
-        ]);
+            'nivel_experiencia' => $usuarioArray['nivel_experiencia'] ?? $data['experienceLevel'] ?? null,
+            'usuario' => $usuarioArray,
+        ], 200);
     }
 
     public function updateSocialLinks(Request $request): JsonResponse

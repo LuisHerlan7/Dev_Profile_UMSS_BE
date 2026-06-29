@@ -14,6 +14,7 @@ class PublicProfileController extends Controller
             SELECT u.id_usuario,
                    u.nombre_completo,
                    u.profesion,
+                   u.nivel_experiencia,
                    u.fecha_actualizacion,
                    COALESCE(cv.mostrar_habilidades, TRUE) AS mostrar_habilidades
             FROM "Usuario" u
@@ -43,7 +44,7 @@ class PublicProfileController extends Controller
                 'id' => $u->id_usuario,
                 'name' => $u->nombre_completo,
                 'title' => $u->profesion ?? 'Desarrollador',
-                'level' => 'Junior',
+                'experienceLevel' => $this->normalizeExperienceLevel($u->nivel_experiencia ?? null),
                 'type' => 'Full Stack',
                 'tags' => array_map(fn($h) => $h->nombre_habilidad, $habilidades),
                 'avatarUrl' => $avatarUrl
@@ -247,6 +248,7 @@ class PublicProfileController extends Controller
                     : null,
                 'titleHierarchy' => $this->decodeJsonArray($u->titulos_jerarquia_json ?? null),
                 'roleHierarchy' => $this->decodeJsonArray($u->roles_jerarquia_json ?? null),
+                'experienceLevel' => $this->normalizeExperienceLevel($u->nivel_experiencia ?? null),
             ],
             'social' => (!$config || ($config->mostrar_redes_sociales ?? true))
                 ? $this->normalizeSocialLinks($redes)
@@ -438,5 +440,17 @@ class PublicProfileController extends Controller
         }
 
         return $normalized;
+    }
+
+    private function normalizeExperienceLevel(?string $level): string
+    {
+        $value = strtolower(trim((string) $level));
+
+        return match ($value) {
+            'senior' => 'senior',
+            'semi-senior', 'semi senior', 'semisenior' => 'semi-senior',
+            'junior' => 'junior',
+            default => 'junior',
+        };
     }
 }

@@ -29,7 +29,7 @@ class DeveloperDashboardController extends Controller
         $idUsuario = $this->generadorUsuarioSync->ensureForLaravelUser($user);
 
         $usuario = DB::selectOne(
-            'SELECT id_usuario, nombre_completo, correo, correo_contacto, telefono, profesion, biografia, visibilidad_perfil, fecha_creacion, fecha_actualizacion,
+            'SELECT id_usuario, nombre_completo, correo, correo_contacto, telefono, profesion, biografia, visibilidad_perfil, nivel_experiencia, fecha_creacion, fecha_actualizacion,
                     titulos_jerarquia_json, roles_jerarquia_json,
                     CASE WHEN fotografia IS NOT NULL THEN true ELSE false END AS tiene_fotografia
              FROM "Usuario" WHERE id_usuario = ?',
